@@ -269,6 +269,7 @@ public partial class project1 {
             Qty.SetVisibility();
             Price.SetVisibility();
             OrderID.Visible = false;
+            Total.SetVisibility();
         }
 
         // Constructor
@@ -833,14 +834,9 @@ public partial class project1 {
 
             // Get default search criteria
             AddFilter(ref DefaultSearchWhere, BasicSearchWhere(true));
-            AddFilter(ref DefaultSearchWhere, AdvancedSearchWhere(true));
 
             // Get basic search values
             LoadBasicSearchValues();
-
-            // Get and validate search values for advanced search
-            if (Empty(UserAction)) // Skip if user action
-                LoadSearchValues(); // Get search values
 
             // Process filter list
             var filterResult = await ProcessFilterList();
@@ -849,10 +845,6 @@ public partial class project1 {
                 if (!Config.Debug)
                     Response?.Clear();
                 return Controller.Json(filterResult);
-            }
-            CurrentForm?.ResetIndex();
-            if (!ValidateSearch()) {
-                // Nothing to do
             }
 
             // Restore search parms from Session if not searching / reset / export
@@ -869,13 +861,6 @@ public partial class project1 {
             if (!HasInvalidFields())
                 srchBasic = BasicSearchWhere();
 
-            // Get search criteria for advanced search
-            if (!HasInvalidFields())
-                srchAdvanced = AdvancedSearchWhere();
-
-            // Get query builder criteria
-            query = QueryBuilderWhere();
-
             // Restore display records
             if (Command != "json" && (RecordsPerPage == -1 || RecordsPerPage > 0)) {
                 DisplayRecords = RecordsPerPage; // Restore from Session
@@ -890,15 +875,7 @@ public partial class project1 {
                 BasicSearch.LoadDefault();
                 if (!Empty(BasicSearch.Keyword))
                     srchBasic = BasicSearchWhere(); // Save to session
-
-                // Load advanced search from default
-                if (LoadAdvancedSearchDefault())
-                    srchAdvanced = AdvancedSearchWhere(); // Save to session
             }
-
-            // Restore search settings from Session
-            if (!HasInvalidFields())
-                LoadAdvancedSearch();
 
             // Build search criteria
             if (!Empty(query)) {
@@ -1220,6 +1197,7 @@ public partial class project1 {
             ItemName.ClearErrorMessage();
             Qty.ClearErrorMessage();
             Price.ClearErrorMessage();
+            Total.ClearErrorMessage();
         }
 
         #pragma warning disable 162, 1998
@@ -1295,177 +1273,13 @@ public partial class project1 {
             return true;
         }
 
-        // Advanced search WHERE clause based on QueryString
-        public string AdvancedSearchWhere(bool def = false) {
-            string where = "";
-            BuildSearchSql(ref where, ItemName, def, true); // ItemName
-            BuildSearchSql(ref where, Qty, def, true); // Qty
-            BuildSearchSql(ref where, Price, def, true); // Price
-
-            // Set up search command
-            if (!def && !Empty(where) && (new[] { "", "reset", "resetall" }).Contains(Command))
-                Command = "search";
-            if (!def && Command == "search") {
-                ItemName.AdvancedSearch.Save(); // ItemName
-                Qty.AdvancedSearch.Save(); // Qty
-                Price.AdvancedSearch.Save(); // Price
-
-                // Clear rules for QueryBuilder
-                SessionRules = "";
-            }
-            return where;
-        }
-
-        // Parse query builder rule function
-        protected string ParseRules(Dictionary<string, object>? group, string fieldName = "") {
-            if (group == null)
-                return "";
-            string condition = group.ContainsKey("condition") ? ConvertToString(group["condition"]) : "AND";
-            if (!(new [] { "AND", "OR" }).Contains(condition))
-                throw new System.Exception("Unable to build SQL query with condition '" + condition + "'");
-            List<string> parts = new ();
-            string where = "";
-            var groupRules = group.ContainsKey("rules") ? group["rules"] : null;
-            if (groupRules is IEnumerable<object> rules) {
-                foreach (object rule in rules) {
-                    var subRules = JObject.FromObject(rule).ToObject<Dictionary<string, object>>();
-                    if (subRules == null)
-                        continue;
-                    if (subRules.ContainsKey("rules")) {
-                        parts.Add("(" + " " + ParseRules(subRules, fieldName) + " " + ")" + " ");
-                    } else {
-                        string field = subRules.ContainsKey("field") ? ConvertToString(subRules["field"]) : "";
-                        var fld = FieldByParam(field);
-                        if (fld == null)
-                            throw new System.Exception("Failed to find field '" + field + "'");
-                        if (Empty(fieldName) || fld.Name == fieldName) { // Field name not specified or matched field name
-                            string opr = subRules.ContainsKey("operator") ? ConvertToString(subRules["operator"]) : "";
-                            string fldOpr = Config.ClientSearchOperators.FirstOrDefault(o => o.Value == opr).Key;
-                            Dictionary<string, object>? ope = Config.QueryBuilderOperators.ContainsKey(opr) ? Config.QueryBuilderOperators[opr] : null;
-                            if (ope == null || Empty(fldOpr))
-                                throw new System.Exception("Unknown SQL operation for operator '" + opr + "'");
-                            int nb_inputs = ope.ContainsKey("nb_inputs") ? ConvertToInt(ope["nb_inputs"]) : 0;
-                            object val = subRules.ContainsKey("value") ? subRules["value"] : "";
-                            if (nb_inputs > 0 && !Empty(val) || IsNullOrEmptyOperator(fldOpr)) {
-                                string fldVal = val is List<object> list
-                                    ? (list[0] is IEnumerable<string> ? String.Join(Config.MultipleOptionSeparator, list[0]) : ConvertToString(list[0]))
-                                    : ConvertToString(val);
-                                bool useFilter = fld.UseFilter; // Query builder does not use filter
-                                try {
-                                    if (fld.IsMultiSelect) {
-                                        parts.Add(!Empty(fldVal) ? GetMultiSearchSql(fld, fldOpr, ConvertSearchValue(fldVal, fldOpr, fld), DbId) : "");
-                                    } else {
-                                        string fldVal2 = fldOpr.Contains("BETWEEN")
-                                            ? (val is List<object> list2 && list2.Count > 1
-                                                ? (list2[1] is IEnumerable<string> ? String.Join(Config.MultipleOptionSeparator, list2[1]) : ConvertToString(list2[1]))
-                                                : "")
-                                            : ""; // BETWEEN
-                                        parts.Add(GetSearchSql(
-                                            fld,
-                                            ConvertSearchValue(fldVal, fldOpr, fld), // fldVal
-                                            fldOpr,
-                                            "", // fldCond not used
-                                            ConvertSearchValue(fldVal2, fldOpr, fld), // $fldVal2
-                                            "", // fldOpr2 not used
-                                            DbId
-                                        ));
-                                    }
-                                } finally {
-                                    fld.UseFilter = useFilter;
-                                }
-                            }
-                        }
-                    }
-                }
-                where = String.Join(" " + condition + " ", parts);
-                bool not = group.ContainsKey("not") ? ConvertToBool(group["not"]) : false;
-                if (not)
-                    where = "NOT (" + where + ")";
-            }
-            return where;
-        }
-
-        // Quey builder WHERE clause
-        public string QueryBuilderWhere(string fieldName = "")
-        {
-            // Get rules by query builder
-            string rules = "";
-            if (Post("rules", out StringValues sv))
-                rules = sv.ToString();
-            else
-                rules = SessionRules;
-
-            // Decode and parse rules
-            string where = !Empty(rules) ? ParseRules(JsonConvert.DeserializeObject<Dictionary<string, object>>(rules), fieldName) : "";
-
-            // Clear other search and save rules to session
-            if (!Empty(where) && Empty(fieldName)) { // Skip if get query for specific field
-                ResetSearchParms();
-                SessionRules = rules;
-            }
-
-            // Return query
-            return where;
-        }
-
-        // Build search SQL
-        public void BuildSearchSql(ref string where, DbField fld, bool def, bool multiValue)
-        {
-            string fldParm = fld.Param;
-            string fldVal = def ? ConvertToString(fld.AdvancedSearch.SearchValueDefault) : ConvertToString(fld.AdvancedSearch.SearchValue);
-            string fldOpr = def ? fld.AdvancedSearch.SearchOperatorDefault : fld.AdvancedSearch.SearchOperator;
-            string fldCond = def ? fld.AdvancedSearch.SearchConditionDefault : fld.AdvancedSearch.SearchCondition;
-            string fldVal2 = def ? ConvertToString(fld.AdvancedSearch.SearchValue2Default) : ConvertToString(fld.AdvancedSearch.SearchValue2);
-            string fldOpr2 = def ? fld.AdvancedSearch.SearchOperator2Default : fld.AdvancedSearch.SearchOperator2;
-            fldVal = ConvertSearchValue(fldVal, fldOpr, fld);
-            fldVal2 = ConvertSearchValue(fldVal2, fldOpr2, fld);
-            fldOpr = ConvertSearchOperator(fldOpr, fld, fldVal);
-            fldOpr2 = ConvertSearchOperator(fldOpr2, fld, fldVal2);
-            string wrk = "";
-            if (Config.SearchMultiValueOption == 1 && !fld.UseFilter || !IsMultiSearchOperator(fldOpr))
-                multiValue = false;
-            if (multiValue) {
-                wrk = !Empty(fldVal) ? GetMultiSearchSql(fld, fldOpr, fldVal, DbId) : ""; // Field value 1
-                string wrk2 = !Empty(fldVal2) ? GetMultiSearchSql(fld, fldOpr2, fldVal2, DbId) : ""; // Field value 2
-                AddFilter(ref wrk, wrk2, fldCond);
-            } else {
-                wrk = GetSearchSql(fld, fldVal, fldOpr, fldCond, fldVal2, fldOpr2, DbId);
-            }
-            string cond = SearchOption == "AUTO" && (new[] {"AND", "OR"}).Contains(BasicSearch.Type)
-                ? BasicSearch.Type
-                : SameText(SearchOption, "OR") ? "OR" : "AND";
-            AddFilter(ref where, wrk, cond);
-        }
-
         // Show list of filters
         public void ShowFilterList()
         {
             // Initialize
             string filterList = "",
-                filter = "",
                 captionClass = IsExport("email") ? "ew-filter-caption-email" : "ew-filter-caption",
                 captionSuffix = IsExport("email") ? ": " : "";
-
-            // Field ItemName
-            filter = QueryBuilderWhere("ItemName");
-            if (Empty(filter))
-                BuildSearchSql(ref filter, ItemName, false, true);
-            if (!Empty(filter))
-                filterList += "<div><span class=\"" + captionClass + "\">" + ItemName.Caption + "</span>" + captionSuffix + filter + "</div>";
-
-            // Field Qty
-            filter = QueryBuilderWhere("Qty");
-            if (Empty(filter))
-                BuildSearchSql(ref filter, Qty, false, true);
-            if (!Empty(filter))
-                filterList += "<div><span class=\"" + captionClass + "\">" + Qty.Caption + "</span>" + captionSuffix + filter + "</div>";
-
-            // Field Price
-            filter = QueryBuilderWhere("Price");
-            if (Empty(filter))
-                BuildSearchSql(ref filter, Price, false, true);
-            if (!Empty(filter))
-                filterList += "<div><span class=\"" + captionClass + "\">" + Price.Caption + "</span>" + captionSuffix + filter + "</div>";
             if (!Empty(BasicSearch.Keyword))
                 filterList += "<div><span class=\"" + captionClass + "\">" + Language.Phrase("BasicSearchKeyword") + "</span>" + captionSuffix + BasicSearch.Keyword + "</div>";
 
@@ -1489,6 +1303,7 @@ public partial class project1 {
             searchFlds.Add(ItemName);
             searchFlds.Add(Qty);
             searchFlds.Add(Price);
+            searchFlds.Add(Total);
             string searchKeyword = def ? BasicSearch.KeywordDefault : BasicSearch.Keyword;
             string searchType = def ? BasicSearch.TypeDefault : BasicSearch.Type;
 
@@ -1514,12 +1329,6 @@ public partial class project1 {
             // Check basic search
             if (BasicSearch.IssetSession)
                 return true;
-            if (ItemName.AdvancedSearch.IssetSession)
-                return true;
-            if (Qty.AdvancedSearch.IssetSession)
-                return true;
-            if (Price.AdvancedSearch.IssetSession)
-                return true;
             return false;
         }
 
@@ -1530,9 +1339,6 @@ public partial class project1 {
 
             // Clear basic search parameters
             ResetBasicSearchParms();
-
-            // Clear advanced search parameters
-            ResetAdvancedSearchParms();
 
             // Clear queryBuilder
             SessionRules = "";
@@ -1548,24 +1354,12 @@ public partial class project1 {
             BasicSearch.UnsetSession();
         }
 
-        // Clear all advanced search parameters
-        protected void ResetAdvancedSearchParms() {
-            ItemName.AdvancedSearch.UnsetSession();
-            Qty.AdvancedSearch.UnsetSession();
-            Price.AdvancedSearch.UnsetSession();
-        }
-
         // Restore all search parameters
         protected void RestoreSearchParms() {
             RestoreSearch = true;
 
             // Restore basic search values
             BasicSearch.Load();
-
-            // Restore advanced search values
-            ItemName.AdvancedSearch.Load();
-            Qty.AdvancedSearch.Load();
-            Price.AdvancedSearch.Load();
         }
 
         // Set up sort parameters
@@ -1584,6 +1378,7 @@ public partial class project1 {
                 UpdateSort(ItemName); // ItemName
                 UpdateSort(Qty); // Qty
                 UpdateSort(Price); // Price
+                UpdateSort(Total); // Total
                 StartRecordNumber = 1; // Reset start position
             }
 
@@ -1621,6 +1416,7 @@ public partial class project1 {
                     Qty.Sort = "";
                     Price.Sort = "";
                     OrderID.Sort = "";
+                    Total.Sort = "";
                 }
 
                 // Reset start position
@@ -1637,31 +1433,31 @@ public partial class project1 {
             // Add group option item
             item = ListOptions.AddGroupOption();
             item.Body = "";
-            item.OnLeft = false;
+            item.OnLeft = true;
             item.Visible = false;
 
             // "edit"
             item = ListOptions.Add("edit");
             item.CssClass = "text-nowrap";
             item.Visible = true;
-            item.OnLeft = false;
+            item.OnLeft = true;
 
             // "copy"
             item = ListOptions.Add("copy");
             item.CssClass = "text-nowrap";
             item.Visible = (IsAdd);
-            item.OnLeft = false;
+            item.OnLeft = true;
 
             // "delete"
             item = ListOptions.Add("delete");
             item.CssClass = "text-nowrap";
             item.Visible = true;
-            item.OnLeft = false;
+            item.OnLeft = true;
 
             // List actions
             item = ListOptions.Add("listactions");
             item.CssClass = "text-nowrap";
-            item.OnLeft = false;
+            item.OnLeft = true;
             item.Visible = false;
             item.ShowInButtonGroup = false;
             item.ShowInDropDown = false;
@@ -1670,7 +1466,7 @@ public partial class project1 {
             item = ListOptions.Add("checkbox");
             item.CssStyle = "white-space: nowrap; text-align: center; vertical-align: middle; margin: 0px;";
             item.Visible = false;
-            item.OnLeft = false;
+            item.OnLeft = true;
             item.Header = "<div class=\"form-check\"><input type=\"checkbox\" name=\"key\" id=\"key\" class=\"form-check-input\" data-ew-action=\"select-all-keys\"></div>";
             if (item.OnLeft)
                 item.MoveTo(0);
@@ -1898,6 +1694,7 @@ public partial class project1 {
                 CreateColumnOption(option.Add("ItemName")); // DN
                 CreateColumnOption(option.Add("Qty")); // DN
                 CreateColumnOption(option.Add("Price")); // DN
+                CreateColumnOption(option.Add("Total")); // DN
             }
 
             // Set up options default
@@ -2220,49 +2017,6 @@ public partial class project1 {
                 BasicSearch.Type = type.ToString();
         }
 
-        // Load search values for validation // DN
-        protected void LoadSearchValues() {
-            // Load query builder rules
-            string rules = Post("rules");
-            if (!Empty(rules) && Empty(Command)) {
-                QueryRules = rules;
-                Command = "search";
-            }
-
-            // ItemName
-            if (!IsAddOrEdit)
-                if (Query.ContainsKey("x_ItemName[]"))
-                    ItemName.AdvancedSearch.SearchValue = Get("x_ItemName[]");
-                else
-                    ItemName.AdvancedSearch.SearchValue = Get("ItemName"); // Default Value // DN
-            if (!Empty(ItemName.AdvancedSearch.SearchValue) && Command == "")
-                Command = "search";
-            if (Query.ContainsKey("z_ItemName"))
-                ItemName.AdvancedSearch.SearchOperator = Get("z_ItemName");
-
-            // Qty
-            if (!IsAddOrEdit)
-                if (Query.ContainsKey("x_Qty[]"))
-                    Qty.AdvancedSearch.SearchValue = Get("x_Qty[]");
-                else
-                    Qty.AdvancedSearch.SearchValue = Get("Qty"); // Default Value // DN
-            if (!Empty(Qty.AdvancedSearch.SearchValue) && Command == "")
-                Command = "search";
-            if (Query.ContainsKey("z_Qty"))
-                Qty.AdvancedSearch.SearchOperator = Get("z_Qty");
-
-            // Price
-            if (!IsAddOrEdit)
-                if (Query.ContainsKey("x_Price[]"))
-                    Price.AdvancedSearch.SearchValue = Get("x_Price[]");
-                else
-                    Price.AdvancedSearch.SearchValue = Get("Price"); // Default Value // DN
-            if (!Empty(Price.AdvancedSearch.SearchValue) && Command == "")
-                Command = "search";
-            if (Query.ContainsKey("z_Price"))
-                Price.AdvancedSearch.SearchOperator = Get("z_Price");
-        }
-
         #pragma warning disable 1998
         // Load form values
         protected async Task LoadFormValues() {
@@ -2298,6 +2052,15 @@ public partial class project1 {
                     Price.SetFormValue(val);
             }
 
+            // Check field name 'Total' before field var 'x_Total'
+            val = CurrentForm.HasValue("Total") ? CurrentForm.GetValue("Total") : CurrentForm.GetValue("x_Total");
+            if (!Total.IsDetailKey) {
+                if (IsApi() && !CurrentForm.HasValue("Total") && !CurrentForm.HasValue("x_Total")) // DN
+                    Total.Visible = false; // Disable update for API request
+                else
+                    Total.SetFormValue(val, true, validate);
+            }
+
             // Check field name 'ID' before field var 'x_ID'
             val = CurrentForm.HasValue("ID") ? CurrentForm.GetValue("ID") : CurrentForm.GetValue("x_ID");
             if (!ID.IsDetailKey && !IsGridAdd && !IsAdd)
@@ -2313,6 +2076,7 @@ public partial class project1 {
             ItemName.CurrentValue = ItemName.FormValue;
             Qty.CurrentValue = Qty.FormValue;
             Price.CurrentValue = Price.FormValue;
+            Total.CurrentValue = Total.FormValue;
         }
 
         // Load recordset // DN
@@ -2387,6 +2151,7 @@ public partial class project1 {
             Qty.SetDbValue(row["Qty"]);
             Price.SetDbValue(row["Price"]);
             OrderID.SetDbValue(row["OrderID"]);
+            Total.SetDbValue(row["Total"]);
         }
         #pragma warning restore 162, 168, 1998, 4014
 
@@ -2398,6 +2163,7 @@ public partial class project1 {
             row.Add("Qty", Qty.DefaultValue ?? DbNullValue); // DN
             row.Add("Price", Price.DefaultValue ?? DbNullValue); // DN
             row.Add("OrderID", OrderID.DefaultValue ?? DbNullValue); // DN
+            row.Add("Total", Total.DefaultValue ?? DbNullValue); // DN
             return row;
         }
 
@@ -2446,6 +2212,17 @@ public partial class project1 {
             // OrderID
             OrderID.CellCssStyle = "white-space: nowrap;";
 
+            // Total
+            Total.CellCssStyle = "white-space: nowrap;";
+
+            // Accumulate aggregate value
+            if (RowType != RowType.AggregateInit && RowType != RowType.Aggregate && RowType != RowType.PreviewField) {
+                if (IsNumeric(Qty.CurrentValue))
+                    Qty.Total += ConvertToDouble(Qty.CurrentValue); // Accumulate total
+                if (IsNumeric(Total.CurrentValue))
+                    Total.Total += ConvertToDouble(Total.CurrentValue); // Accumulate total
+            }
+
             // View row
             if (RowType == RowType.View) {
                 // ItemName
@@ -2461,6 +2238,11 @@ public partial class project1 {
                 Price.ViewValue = ConvertToString(Price.CurrentValue); // DN
                 Price.ViewCustomAttributes = "";
 
+                // Total
+                Total.ViewValue = Total.CurrentValue;
+                Total.ViewValue = FormatNumber(Total.ViewValue, Total.FormatPattern);
+                Total.ViewCustomAttributes = "";
+
                 // ItemName
                 ItemName.HrefValue = "";
                 ItemName.TooltipValue = "";
@@ -2472,6 +2254,10 @@ public partial class project1 {
                 // Price
                 Price.HrefValue = "";
                 Price.TooltipValue = "";
+
+                // Total
+                Total.HrefValue = "";
+                Total.TooltipValue = "";
             } else if (RowType == RowType.Add) {
                 // ItemName
                 ItemName.SetupEditAttributes();
@@ -2494,6 +2280,13 @@ public partial class project1 {
                 Price.EditValue = HtmlEncode(Price.CurrentValue);
                 Price.PlaceHolder = RemoveHtml(Price.Caption);
 
+                // Total
+                Total.SetupEditAttributes();
+                Total.EditValue = Total.CurrentValue; // DN
+                Total.PlaceHolder = RemoveHtml(Total.Caption);
+                if (!Empty(Total.EditValue) && IsNumeric(Total.EditValue))
+                    Total.EditValue = FormatNumber(Total.EditValue, null);
+
                 // Add refer script
 
                 // ItemName
@@ -2504,6 +2297,9 @@ public partial class project1 {
 
                 // Price
                 Price.HrefValue = "";
+
+                // Total
+                Total.HrefValue = "";
             } else if (RowType == RowType.Edit) {
                 // ItemName
                 ItemName.SetupEditAttributes();
@@ -2526,6 +2322,13 @@ public partial class project1 {
                 Price.EditValue = HtmlEncode(Price.CurrentValue);
                 Price.PlaceHolder = RemoveHtml(Price.Caption);
 
+                // Total
+                Total.SetupEditAttributes();
+                Total.EditValue = Total.CurrentValue; // DN
+                Total.PlaceHolder = RemoveHtml(Total.Caption);
+                if (!Empty(Total.EditValue) && IsNumeric(Total.EditValue))
+                    Total.EditValue = FormatNumber(Total.EditValue, null);
+
                 // Edit refer script
 
                 // ItemName
@@ -2536,21 +2339,23 @@ public partial class project1 {
 
                 // Price
                 Price.HrefValue = "";
-            } else if (RowType == RowType.Search) {
-                // ItemName
-                if (ItemName.UseFilter && !Empty(ItemName.AdvancedSearch.SearchValue)) {
-                    ItemName.EditValue = ConvertToString(ItemName.AdvancedSearch.SearchValue).Split(Config.MultipleOptionSeparator).ToList();
-                }
 
-                // Qty
-                if (Qty.UseFilter && !Empty(Qty.AdvancedSearch.SearchValue)) {
-                    Qty.EditValue = ConvertToString(Qty.AdvancedSearch.SearchValue).Split(Config.MultipleOptionSeparator).ToList();
-                }
-
-                // Price
-                if (Price.UseFilter && !Empty(Price.AdvancedSearch.SearchValue)) {
-                    Price.EditValue = ConvertToString(Price.AdvancedSearch.SearchValue).Split(Config.MultipleOptionSeparator).ToList();
-                }
+                // Total
+                Total.HrefValue = "";
+            } else if (RowType == RowType.AggregateInit) { // Initialize aggregate row
+                Qty.Total = 0; // Initialize total
+                Total.Total = 0; // Initialize total
+            } else if (RowType == RowType.Aggregate) { // Aggregate row
+                Qty.CurrentValue = Qty.Total;
+                Qty.ViewValue = Qty.CurrentValue;
+                Qty.ViewValue = FormatNumber(Qty.ViewValue, Qty.FormatPattern);
+                Qty.ViewCustomAttributes = "";
+                Qty.HrefValue = ""; // Clear href value
+                Total.CurrentValue = Total.Total;
+                Total.ViewValue = Total.CurrentValue;
+                Total.ViewValue = FormatNumber(Total.ViewValue, Total.FormatPattern);
+                Total.ViewCustomAttributes = "";
+                Total.HrefValue = ""; // Clear href value
             }
             if (RowType == RowType.Add || RowType == RowType.Edit || RowType == RowType.Search) // Add/Edit/Search row
                 SetupFieldTitles();
@@ -2560,23 +2365,6 @@ public partial class project1 {
                 RowRendered();
         }
         #pragma warning restore 1998
-
-        // Validate search
-        protected bool ValidateSearch() {
-            // Check if validation required
-            if (!Config.ServerValidate)
-                return true;
-
-            // Return validate result
-            bool validateSearch = !HasInvalidFields();
-
-            // Call Form CustomValidate event
-            string formCustomError = "";
-            validateSearch = validateSearch && FormCustomValidate(ref formCustomError);
-            if (!Empty(formCustomError))
-                FailureMessage = formCustomError;
-            return validateSearch;
-        }
 
         #pragma warning disable 1998
         // Validate form
@@ -2602,6 +2390,14 @@ public partial class project1 {
                 if (!Price.IsDetailKey && Empty(Price.FormValue)) {
                     Price.AddErrorMessage(ConvertToString(Price.RequiredErrorMessage).Replace("%s", Price.Caption));
                 }
+            }
+            if (Total.Required) {
+                if (!Total.IsDetailKey && Empty(Total.FormValue)) {
+                    Total.AddErrorMessage(ConvertToString(Total.RequiredErrorMessage).Replace("%s", Total.Caption));
+                }
+            }
+            if (!CheckInteger(Total.FormValue)) {
+                Total.AddErrorMessage(Total.GetErrorMessage(false));
             }
 
             // Return validate result
@@ -2654,6 +2450,9 @@ public partial class project1 {
 
             // Price
             Price.SetDbValue(rsnew, Price.CurrentValue, Price.ReadOnly);
+
+            // Total
+            Total.SetDbValue(rsnew, Total.CurrentValue, Total.ReadOnly);
 
             // Update current values
             SetCurrentValues(rsnew);
@@ -2773,6 +2572,9 @@ public partial class project1 {
                 // Price
                 Price.SetDbValue(rsnew, Price.CurrentValue);
 
+                // Total
+                Total.SetDbValue(rsnew, Total.CurrentValue);
+
                 // OrderID
                 if (!Empty(OrderID.SessionValue)) {
                     rsnew["OrderID"] = OrderID.SessionValue;
@@ -2834,14 +2636,6 @@ public partial class project1 {
                 return new JsonBoolResult(d, result);
             }
             return new JsonBoolResult(d, result);
-        }
-
-        // Load advanced search
-        public void LoadAdvancedSearch()
-        {
-            ItemName.AdvancedSearch.Load();
-            Qty.AdvancedSearch.Load();
-            Price.AdvancedSearch.Load();
         }
 
         // Set up search options

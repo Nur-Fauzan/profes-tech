@@ -203,6 +203,7 @@ public partial class project1 {
             Qty.SetVisibility();
             Price.SetVisibility();
             OrderID.Visible = false;
+            Total.SetVisibility();
         }
 
         // Constructor
@@ -562,6 +563,7 @@ public partial class project1 {
             Qty.SetDbValue(row["Qty"]);
             Price.SetDbValue(row["Price"]);
             OrderID.SetDbValue(row["OrderID"]);
+            Total.SetDbValue(row["Total"]);
         }
         #pragma warning restore 162, 168, 1998, 4014
 
@@ -573,6 +575,7 @@ public partial class project1 {
             row.Add("Qty", Qty.DefaultValue ?? DbNullValue); // DN
             row.Add("Price", Price.DefaultValue ?? DbNullValue); // DN
             row.Add("OrderID", OrderID.DefaultValue ?? DbNullValue); // DN
+            row.Add("Total", Total.DefaultValue ?? DbNullValue); // DN
             return row;
         }
 
@@ -600,6 +603,9 @@ public partial class project1 {
             // OrderID
             OrderID.CellCssStyle = "white-space: nowrap;";
 
+            // Total
+            Total.CellCssStyle = "white-space: nowrap;";
+
             // View row
             if (RowType == RowType.View) {
                 // ItemName
@@ -615,6 +621,11 @@ public partial class project1 {
                 Price.ViewValue = ConvertToString(Price.CurrentValue); // DN
                 Price.ViewCustomAttributes = "";
 
+                // Total
+                Total.ViewValue = Total.CurrentValue;
+                Total.ViewValue = FormatNumber(Total.ViewValue, Total.FormatPattern);
+                Total.ViewCustomAttributes = "";
+
                 // ItemName
                 ItemName.HrefValue = "";
                 ItemName.TooltipValue = "";
@@ -626,6 +637,10 @@ public partial class project1 {
                 // Price
                 Price.HrefValue = "";
                 Price.TooltipValue = "";
+
+                // Total
+                Total.HrefValue = "";
+                Total.TooltipValue = "";
             }
 
             // Call Row Rendered event

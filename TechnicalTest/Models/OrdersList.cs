@@ -784,14 +784,9 @@ public partial class project1 {
 
             // Get default search criteria
             AddFilter(ref DefaultSearchWhere, BasicSearchWhere(true));
-            AddFilter(ref DefaultSearchWhere, AdvancedSearchWhere(true));
 
             // Get basic search values
             LoadBasicSearchValues();
-
-            // Get and validate search values for advanced search
-            if (Empty(UserAction)) // Skip if user action
-                LoadSearchValues(); // Get search values
 
             // Process filter list
             var filterResult = await ProcessFilterList();
@@ -800,10 +795,6 @@ public partial class project1 {
                 if (!Config.Debug)
                     Response?.Clear();
                 return Controller.Json(filterResult);
-            }
-            CurrentForm?.ResetIndex();
-            if (!ValidateSearch()) {
-                // Nothing to do
             }
 
             // Restore search parms from Session if not searching / reset / export
@@ -820,13 +811,6 @@ public partial class project1 {
             if (!HasInvalidFields())
                 srchBasic = BasicSearchWhere();
 
-            // Get search criteria for advanced search
-            if (!HasInvalidFields())
-                srchAdvanced = AdvancedSearchWhere();
-
-            // Get query builder criteria
-            query = QueryBuilderWhere();
-
             // Restore display records
             if (Command != "json" && (RecordsPerPage == -1 || RecordsPerPage > 0)) {
                 DisplayRecords = RecordsPerPage; // Restore from Session
@@ -841,15 +825,7 @@ public partial class project1 {
                 BasicSearch.LoadDefault();
                 if (!Empty(BasicSearch.Keyword))
                     srchBasic = BasicSearchWhere(); // Save to session
-
-                // Load advanced search from default
-                if (LoadAdvancedSearchDefault())
-                    srchAdvanced = AdvancedSearchWhere(); // Save to session
             }
-
-            // Restore search settings from Session
-            if (!HasInvalidFields())
-                LoadAdvancedSearch();
 
             // Build search criteria
             if (!Empty(query)) {
@@ -1130,186 +1106,13 @@ public partial class project1 {
             return true;
         }
 
-        // Advanced search WHERE clause based on QueryString
-        public string AdvancedSearchWhere(bool def = false) {
-            string where = "";
-            BuildSearchSql(ref where, SalesOrder, def, true); // SalesOrder
-            BuildSearchSql(ref where, OrderDate, def, true); // OrderDate
-            BuildSearchSql(ref where, Customer, def, true); // Customer
-            BuildSearchSql(ref where, Address, def, true); // Address
-
-            // Set up search command
-            if (!def && !Empty(where) && (new[] { "", "reset", "resetall" }).Contains(Command))
-                Command = "search";
-            if (!def && Command == "search") {
-                SalesOrder.AdvancedSearch.Save(); // SalesOrder
-                OrderDate.AdvancedSearch.Save(); // OrderDate
-                Customer.AdvancedSearch.Save(); // Customer
-                Address.AdvancedSearch.Save(); // Address
-
-                // Clear rules for QueryBuilder
-                SessionRules = "";
-            }
-            return where;
-        }
-
-        // Parse query builder rule function
-        protected string ParseRules(Dictionary<string, object>? group, string fieldName = "") {
-            if (group == null)
-                return "";
-            string condition = group.ContainsKey("condition") ? ConvertToString(group["condition"]) : "AND";
-            if (!(new [] { "AND", "OR" }).Contains(condition))
-                throw new System.Exception("Unable to build SQL query with condition '" + condition + "'");
-            List<string> parts = new ();
-            string where = "";
-            var groupRules = group.ContainsKey("rules") ? group["rules"] : null;
-            if (groupRules is IEnumerable<object> rules) {
-                foreach (object rule in rules) {
-                    var subRules = JObject.FromObject(rule).ToObject<Dictionary<string, object>>();
-                    if (subRules == null)
-                        continue;
-                    if (subRules.ContainsKey("rules")) {
-                        parts.Add("(" + " " + ParseRules(subRules, fieldName) + " " + ")" + " ");
-                    } else {
-                        string field = subRules.ContainsKey("field") ? ConvertToString(subRules["field"]) : "";
-                        var fld = FieldByParam(field);
-                        if (fld == null)
-                            throw new System.Exception("Failed to find field '" + field + "'");
-                        if (Empty(fieldName) || fld.Name == fieldName) { // Field name not specified or matched field name
-                            string opr = subRules.ContainsKey("operator") ? ConvertToString(subRules["operator"]) : "";
-                            string fldOpr = Config.ClientSearchOperators.FirstOrDefault(o => o.Value == opr).Key;
-                            Dictionary<string, object>? ope = Config.QueryBuilderOperators.ContainsKey(opr) ? Config.QueryBuilderOperators[opr] : null;
-                            if (ope == null || Empty(fldOpr))
-                                throw new System.Exception("Unknown SQL operation for operator '" + opr + "'");
-                            int nb_inputs = ope.ContainsKey("nb_inputs") ? ConvertToInt(ope["nb_inputs"]) : 0;
-                            object val = subRules.ContainsKey("value") ? subRules["value"] : "";
-                            if (nb_inputs > 0 && !Empty(val) || IsNullOrEmptyOperator(fldOpr)) {
-                                string fldVal = val is List<object> list
-                                    ? (list[0] is IEnumerable<string> ? String.Join(Config.MultipleOptionSeparator, list[0]) : ConvertToString(list[0]))
-                                    : ConvertToString(val);
-                                bool useFilter = fld.UseFilter; // Query builder does not use filter
-                                try {
-                                    if (fld.IsMultiSelect) {
-                                        parts.Add(!Empty(fldVal) ? GetMultiSearchSql(fld, fldOpr, ConvertSearchValue(fldVal, fldOpr, fld), DbId) : "");
-                                    } else {
-                                        string fldVal2 = fldOpr.Contains("BETWEEN")
-                                            ? (val is List<object> list2 && list2.Count > 1
-                                                ? (list2[1] is IEnumerable<string> ? String.Join(Config.MultipleOptionSeparator, list2[1]) : ConvertToString(list2[1]))
-                                                : "")
-                                            : ""; // BETWEEN
-                                        parts.Add(GetSearchSql(
-                                            fld,
-                                            ConvertSearchValue(fldVal, fldOpr, fld), // fldVal
-                                            fldOpr,
-                                            "", // fldCond not used
-                                            ConvertSearchValue(fldVal2, fldOpr, fld), // $fldVal2
-                                            "", // fldOpr2 not used
-                                            DbId
-                                        ));
-                                    }
-                                } finally {
-                                    fld.UseFilter = useFilter;
-                                }
-                            }
-                        }
-                    }
-                }
-                where = String.Join(" " + condition + " ", parts);
-                bool not = group.ContainsKey("not") ? ConvertToBool(group["not"]) : false;
-                if (not)
-                    where = "NOT (" + where + ")";
-            }
-            return where;
-        }
-
-        // Quey builder WHERE clause
-        public string QueryBuilderWhere(string fieldName = "")
-        {
-            // Get rules by query builder
-            string rules = "";
-            if (Post("rules", out StringValues sv))
-                rules = sv.ToString();
-            else
-                rules = SessionRules;
-
-            // Decode and parse rules
-            string where = !Empty(rules) ? ParseRules(JsonConvert.DeserializeObject<Dictionary<string, object>>(rules), fieldName) : "";
-
-            // Clear other search and save rules to session
-            if (!Empty(where) && Empty(fieldName)) { // Skip if get query for specific field
-                ResetSearchParms();
-                SessionRules = rules;
-            }
-
-            // Return query
-            return where;
-        }
-
-        // Build search SQL
-        public void BuildSearchSql(ref string where, DbField fld, bool def, bool multiValue)
-        {
-            string fldParm = fld.Param;
-            string fldVal = def ? ConvertToString(fld.AdvancedSearch.SearchValueDefault) : ConvertToString(fld.AdvancedSearch.SearchValue);
-            string fldOpr = def ? fld.AdvancedSearch.SearchOperatorDefault : fld.AdvancedSearch.SearchOperator;
-            string fldCond = def ? fld.AdvancedSearch.SearchConditionDefault : fld.AdvancedSearch.SearchCondition;
-            string fldVal2 = def ? ConvertToString(fld.AdvancedSearch.SearchValue2Default) : ConvertToString(fld.AdvancedSearch.SearchValue2);
-            string fldOpr2 = def ? fld.AdvancedSearch.SearchOperator2Default : fld.AdvancedSearch.SearchOperator2;
-            fldVal = ConvertSearchValue(fldVal, fldOpr, fld);
-            fldVal2 = ConvertSearchValue(fldVal2, fldOpr2, fld);
-            fldOpr = ConvertSearchOperator(fldOpr, fld, fldVal);
-            fldOpr2 = ConvertSearchOperator(fldOpr2, fld, fldVal2);
-            string wrk = "";
-            if (Config.SearchMultiValueOption == 1 && !fld.UseFilter || !IsMultiSearchOperator(fldOpr))
-                multiValue = false;
-            if (multiValue) {
-                wrk = !Empty(fldVal) ? GetMultiSearchSql(fld, fldOpr, fldVal, DbId) : ""; // Field value 1
-                string wrk2 = !Empty(fldVal2) ? GetMultiSearchSql(fld, fldOpr2, fldVal2, DbId) : ""; // Field value 2
-                AddFilter(ref wrk, wrk2, fldCond);
-            } else {
-                wrk = GetSearchSql(fld, fldVal, fldOpr, fldCond, fldVal2, fldOpr2, DbId);
-            }
-            string cond = SearchOption == "AUTO" && (new[] {"AND", "OR"}).Contains(BasicSearch.Type)
-                ? BasicSearch.Type
-                : SameText(SearchOption, "OR") ? "OR" : "AND";
-            AddFilter(ref where, wrk, cond);
-        }
-
         // Show list of filters
         public void ShowFilterList()
         {
             // Initialize
             string filterList = "",
-                filter = "",
                 captionClass = IsExport("email") ? "ew-filter-caption-email" : "ew-filter-caption",
                 captionSuffix = IsExport("email") ? ": " : "";
-
-            // Field SalesOrder
-            filter = QueryBuilderWhere("SalesOrder");
-            if (Empty(filter))
-                BuildSearchSql(ref filter, SalesOrder, false, true);
-            if (!Empty(filter))
-                filterList += "<div><span class=\"" + captionClass + "\">" + SalesOrder.Caption + "</span>" + captionSuffix + filter + "</div>";
-
-            // Field OrderDate
-            filter = QueryBuilderWhere("OrderDate");
-            if (Empty(filter))
-                BuildSearchSql(ref filter, OrderDate, false, true);
-            if (!Empty(filter))
-                filterList += "<div><span class=\"" + captionClass + "\">" + OrderDate.Caption + "</span>" + captionSuffix + filter + "</div>";
-
-            // Field Customer
-            filter = QueryBuilderWhere("Customer");
-            if (Empty(filter))
-                BuildSearchSql(ref filter, Customer, false, true);
-            if (!Empty(filter))
-                filterList += "<div><span class=\"" + captionClass + "\">" + Customer.Caption + "</span>" + captionSuffix + filter + "</div>";
-
-            // Field Address
-            filter = QueryBuilderWhere("Address");
-            if (Empty(filter))
-                BuildSearchSql(ref filter, Address, false, true);
-            if (!Empty(filter))
-                filterList += "<div><span class=\"" + captionClass + "\">" + Address.Caption + "</span>" + captionSuffix + filter + "</div>";
             if (!Empty(BasicSearch.Keyword))
                 filterList += "<div><span class=\"" + captionClass + "\">" + Language.Phrase("BasicSearchKeyword") + "</span>" + captionSuffix + BasicSearch.Keyword + "</div>";
 
@@ -1359,14 +1162,6 @@ public partial class project1 {
             // Check basic search
             if (BasicSearch.IssetSession)
                 return true;
-            if (SalesOrder.AdvancedSearch.IssetSession)
-                return true;
-            if (OrderDate.AdvancedSearch.IssetSession)
-                return true;
-            if (Customer.AdvancedSearch.IssetSession)
-                return true;
-            if (Address.AdvancedSearch.IssetSession)
-                return true;
             return false;
         }
 
@@ -1377,9 +1172,6 @@ public partial class project1 {
 
             // Clear basic search parameters
             ResetBasicSearchParms();
-
-            // Clear advanced search parameters
-            ResetAdvancedSearchParms();
 
             // Clear queryBuilder
             SessionRules = "";
@@ -1395,26 +1187,12 @@ public partial class project1 {
             BasicSearch.UnsetSession();
         }
 
-        // Clear all advanced search parameters
-        protected void ResetAdvancedSearchParms() {
-            SalesOrder.AdvancedSearch.UnsetSession();
-            OrderDate.AdvancedSearch.UnsetSession();
-            Customer.AdvancedSearch.UnsetSession();
-            Address.AdvancedSearch.UnsetSession();
-        }
-
         // Restore all search parameters
         protected void RestoreSearchParms() {
             RestoreSearch = true;
 
             // Restore basic search values
             BasicSearch.Load();
-
-            // Restore advanced search values
-            SalesOrder.AdvancedSearch.Load();
-            OrderDate.AdvancedSearch.Load();
-            Customer.AdvancedSearch.Load();
-            Address.AdvancedSearch.Load();
         }
 
         // Set up sort parameters
@@ -1479,26 +1257,26 @@ public partial class project1 {
             // Add group option item
             item = ListOptions.AddGroupOption();
             item.Body = "";
-            item.OnLeft = false;
+            item.OnLeft = true;
             item.Visible = false;
 
             // "edit"
             item = ListOptions.Add("edit");
             item.CssClass = "text-nowrap";
             item.Visible = true;
-            item.OnLeft = false;
+            item.OnLeft = true;
 
             // "delete"
             item = ListOptions.Add("delete");
             item.CssClass = "text-nowrap";
             item.Visible = true;
-            item.OnLeft = false;
+            item.OnLeft = true;
 
             // "detail_Items"
             item = ListOptions.Add("detail_Items");
             item.CssClass = "text-nowrap";
             item.Visible = true;
-            item.OnLeft = false;
+            item.OnLeft = true;
             item.ShowInButtonGroup = false;
             itemsGrid = Resolve("ItemsGrid")!;
 
@@ -1507,7 +1285,7 @@ public partial class project1 {
                 item = ListOptions.Add("details");
                 item.CssClass = "text-nowrap";
                 item.Visible = ShowMultipleDetails && ListOptions.DetailVisible();
-                item.OnLeft = false;
+                item.OnLeft = true;
                 item.ShowInButtonGroup = false;
             }
 
@@ -1519,7 +1297,7 @@ public partial class project1 {
             // List actions
             item = ListOptions.Add("listactions");
             item.CssClass = "text-nowrap";
-            item.OnLeft = false;
+            item.OnLeft = true;
             item.Visible = false;
             item.ShowInButtonGroup = false;
             item.ShowInDropDown = false;
@@ -1528,7 +1306,7 @@ public partial class project1 {
             item = ListOptions.Add("checkbox");
             item.CssStyle = "white-space: nowrap; text-align: center; vertical-align: middle; margin: 0px;";
             item.Visible = false;
-            item.OnLeft = false;
+            item.OnLeft = true;
             item.Header = "<div class=\"form-check\"><input type=\"checkbox\" name=\"key\" id=\"key\" class=\"form-check-input\" data-ew-action=\"select-all-keys\"></div>";
             if (item.OnLeft)
                 item.MoveTo(0);
@@ -2054,60 +1832,6 @@ public partial class project1 {
                 BasicSearch.Type = type.ToString();
         }
 
-        // Load search values for validation // DN
-        protected void LoadSearchValues() {
-            // Load query builder rules
-            string rules = Post("rules");
-            if (!Empty(rules) && Empty(Command)) {
-                QueryRules = rules;
-                Command = "search";
-            }
-
-            // SalesOrder
-            if (!IsAddOrEdit)
-                if (Query.ContainsKey("x_SalesOrder[]"))
-                    SalesOrder.AdvancedSearch.SearchValue = Get("x_SalesOrder[]");
-                else
-                    SalesOrder.AdvancedSearch.SearchValue = Get("SalesOrder"); // Default Value // DN
-            if (!Empty(SalesOrder.AdvancedSearch.SearchValue) && Command == "")
-                Command = "search";
-            if (Query.ContainsKey("z_SalesOrder"))
-                SalesOrder.AdvancedSearch.SearchOperator = Get("z_SalesOrder");
-
-            // OrderDate
-            if (!IsAddOrEdit)
-                if (Query.ContainsKey("x_OrderDate[]"))
-                    OrderDate.AdvancedSearch.SearchValue = Get("x_OrderDate[]");
-                else
-                    OrderDate.AdvancedSearch.SearchValue = Get("OrderDate"); // Default Value // DN
-            if (!Empty(OrderDate.AdvancedSearch.SearchValue) && Command == "")
-                Command = "search";
-            if (Query.ContainsKey("z_OrderDate"))
-                OrderDate.AdvancedSearch.SearchOperator = Get("z_OrderDate");
-
-            // Customer
-            if (!IsAddOrEdit)
-                if (Query.ContainsKey("x_Customer[]"))
-                    Customer.AdvancedSearch.SearchValue = Get("x_Customer[]");
-                else
-                    Customer.AdvancedSearch.SearchValue = Get("Customer"); // Default Value // DN
-            if (!Empty(Customer.AdvancedSearch.SearchValue) && Command == "")
-                Command = "search";
-            if (Query.ContainsKey("z_Customer"))
-                Customer.AdvancedSearch.SearchOperator = Get("z_Customer");
-
-            // Address
-            if (!IsAddOrEdit)
-                if (Query.ContainsKey("x_Address[]"))
-                    Address.AdvancedSearch.SearchValue = Get("x_Address[]");
-                else
-                    Address.AdvancedSearch.SearchValue = Get("Address"); // Default Value // DN
-            if (!Empty(Address.AdvancedSearch.SearchValue) && Command == "")
-                Command = "search";
-            if (Query.ContainsKey("z_Address"))
-                Address.AdvancedSearch.SearchOperator = Get("z_Address");
-        }
-
         // Load recordset // DN
         public async Task<DbDataReader?> LoadRecordset(int offset = -1, int rowcnt = -1)
         {
@@ -2257,7 +1981,7 @@ public partial class project1 {
                 Customer.ViewCustomAttributes = "";
 
                 // Address
-                Address.ViewValue = ConvertToString(Address.CurrentValue); // DN
+                Address.ViewValue = Address.CurrentValue;
                 Address.ViewCustomAttributes = "";
 
                 // SalesOrder
@@ -2275,26 +1999,6 @@ public partial class project1 {
                 // Address
                 Address.HrefValue = "";
                 Address.TooltipValue = "";
-            } else if (RowType == RowType.Search) {
-                // SalesOrder
-                if (SalesOrder.UseFilter && !Empty(SalesOrder.AdvancedSearch.SearchValue)) {
-                    SalesOrder.EditValue = ConvertToString(SalesOrder.AdvancedSearch.SearchValue).Split(Config.MultipleOptionSeparator).ToList();
-                }
-
-                // OrderDate
-                if (OrderDate.UseFilter && !Empty(OrderDate.AdvancedSearch.SearchValue)) {
-                    OrderDate.EditValue = ConvertToString(OrderDate.AdvancedSearch.SearchValue).Split(Config.MultipleOptionSeparator).ToList();
-                }
-
-                // Customer
-                if (Customer.UseFilter && !Empty(Customer.AdvancedSearch.SearchValue)) {
-                    Customer.EditValue = ConvertToString(Customer.AdvancedSearch.SearchValue).Split(Config.MultipleOptionSeparator).ToList();
-                }
-
-                // Address
-                if (Address.UseFilter && !Empty(Address.AdvancedSearch.SearchValue)) {
-                    Address.EditValue = ConvertToString(Address.AdvancedSearch.SearchValue).Split(Config.MultipleOptionSeparator).ToList();
-                }
             }
 
             // Call Row Rendered event
@@ -2302,32 +2006,6 @@ public partial class project1 {
                 RowRendered();
         }
         #pragma warning restore 1998
-
-        // Validate search
-        protected bool ValidateSearch() {
-            // Check if validation required
-            if (!Config.ServerValidate)
-                return true;
-
-            // Return validate result
-            bool validateSearch = !HasInvalidFields();
-
-            // Call Form CustomValidate event
-            string formCustomError = "";
-            validateSearch = validateSearch && FormCustomValidate(ref formCustomError);
-            if (!Empty(formCustomError))
-                FailureMessage = formCustomError;
-            return validateSearch;
-        }
-
-        // Load advanced search
-        public void LoadAdvancedSearch()
-        {
-            SalesOrder.AdvancedSearch.Load();
-            OrderDate.AdvancedSearch.Load();
-            Customer.AdvancedSearch.Load();
-            Address.AdvancedSearch.Load();
-        }
 
         // Set up search options
         protected void SetupSearchOptions() {

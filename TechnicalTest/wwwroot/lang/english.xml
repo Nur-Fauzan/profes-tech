@@ -1173,6 +1173,9 @@
       <field id="orderid">
         <phrase id="fldcaption" value="Order ID" />
       </field>
+      <field id="total">
+        <phrase id="fldcaption" value="Total" />
+      </field>
     </table>
     <table id="orders">
       <phrase id="tblcaption" value="Sales Order" />

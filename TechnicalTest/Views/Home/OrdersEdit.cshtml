@@ -186,7 +186,7 @@ loadjs.ready("fOrdersedit", function() {
         <label id="elh_Orders_Address" for="x_Address" class="@(ordersEdit.LeftColumnClass)">@Html.Raw(ordersEdit.Address.Caption)@Html.Raw(ordersEdit.Address.Required ? Language.Phrase("FieldRequiredIndicator") : "")</label>
         <div class="@(ordersEdit.RightColumnClass)"><div @Html.Raw(ordersEdit.Address.CellAttributes)>
 <span id="el_Orders_Address">
-<input type="@(ordersEdit.Address.InputTextType)" name="x_Address" id="x_Address" data-table="Orders" data-field="x_Address" value="@Html.Raw(ordersEdit.Address.EditValue)" size="30" maxlength="255" placeholder="@Html.Raw(HtmlEncode(ordersEdit.Address.PlaceHolder))" data-format-pattern="@(ordersEdit.Address.FormatPattern)"@Html.Raw(ordersEdit.Address.EditAttributes) aria-describedby="x_Address_help">
+<textarea data-table="Orders" data-field="x_Address" name="x_Address" id="x_Address" cols="35" rows="4" placeholder="@Html.Raw(HtmlEncode(ordersEdit.Address.PlaceHolder))"@Html.Raw(ordersEdit.Address.EditAttributes) aria-describedby="x_Address_help">@(ordersEdit.Address.EditValue)</textarea>
 @Html.Raw(ordersEdit.Address.GetCustomMessage)
 <div class="invalid-feedback">@Html.Raw(ordersEdit.Address.GetErrorMessage())</div>
 </span>

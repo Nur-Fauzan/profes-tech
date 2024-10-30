@@ -43,7 +43,7 @@ public partial class project1 {
 
         public bool ModalUpdate = false;
 
-        public bool InlineDelete = true;
+        public bool InlineDelete = false;
 
         public bool ModalGridAdd = false;
 
@@ -60,6 +60,8 @@ public partial class project1 {
         public readonly DbField<SqlDbType> Price;
 
         public readonly DbField<SqlDbType> OrderID;
+
+        public readonly DbField<SqlDbType> Total;
 
         // Constructor
         public Items()
@@ -128,12 +130,10 @@ public partial class project1 {
                 ViewTag = "FORMATTED TEXT",
                 HtmlTag = "TEXT",
                 InputTextType = "text",
-                UseFilter = true, // Table header filter
                 SearchOperators = new () { "=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY", "IS NULL", "IS NOT NULL" },
                 CustomMessage = Language.FieldPhrase("Items", "ItemName", "CustomMsg"),
                 IsUpload = false
             };
-            ItemName.Lookup = new Lookup<DbField>(ItemName, "Items", true, "ItemName", new List<string> {"ItemName", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "");
             Fields.Add("ItemName", ItemName);
 
             // Qty
@@ -151,13 +151,11 @@ public partial class project1 {
                 ViewTag = "FORMATTED TEXT",
                 HtmlTag = "TEXT",
                 InputTextType = "text",
-                UseFilter = true, // Table header filter
                 DefaultErrorMessage = Language.Phrase("IncorrectInteger"),
                 SearchOperators = new () { "=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN", "IS NULL", "IS NOT NULL" },
                 CustomMessage = Language.FieldPhrase("Items", "Qty", "CustomMsg"),
                 IsUpload = false
             };
-            Qty.Lookup = new Lookup<DbField>(Qty, "Items", true, "Qty", new List<string> {"Qty", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "");
             Fields.Add("Qty", Qty);
 
             // Price
@@ -175,12 +173,10 @@ public partial class project1 {
                 ViewTag = "FORMATTED TEXT",
                 HtmlTag = "TEXT",
                 InputTextType = "text",
-                UseFilter = true, // Table header filter
                 SearchOperators = new () { "=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY", "IS NULL", "IS NOT NULL" },
                 CustomMessage = Language.FieldPhrase("Items", "Price", "CustomMsg"),
                 IsUpload = false
             };
-            Price.Lookup = new Lookup<DbField>(Price, "Items", true, "Price", new List<string> {"Price", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "");
             Fields.Add("Price", Price);
 
             // OrderID
@@ -206,6 +202,29 @@ public partial class project1 {
             };
             OrderID.Lookup = new Lookup<DbField>(OrderID, "Orders", false, "ID", new List<string> {"SalesOrder", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "[SalesOrder]");
             Fields.Add("OrderID", OrderID);
+
+            // Total
+            Total = new (this, "x_Total", 3, SqlDbType.Int) {
+                Name = "Total",
+                Expression = "Price*Qty",
+                UseBasicSearch = true,
+                BasicSearchExpression = "CAST(Price*Qty AS NVARCHAR)",
+                DateTimeFormat = -1,
+                VirtualExpression = "Price*Qty",
+                IsVirtual = false,
+                ForceSelection = false,
+                SelectMultiple = false,
+                VirtualSearch = false,
+                ViewTag = "FORMATTED TEXT",
+                HtmlTag = "TEXT",
+                InputTextType = "text",
+                IsCustom = true, // Custom field
+                DefaultErrorMessage = Language.Phrase("IncorrectInteger"),
+                SearchOperators = new () { "=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN", "IS NULL", "IS NOT NULL" },
+                CustomMessage = Language.FieldPhrase("Items", "Total", "CustomMsg"),
+                IsUpload = false
+            };
+            Fields.Add("Total", Total);
 
             // Call Table Load event
             TableLoad();
@@ -421,7 +440,7 @@ public partial class project1 {
         private string? _sqlSelect = null;
 
         public string SqlSelect { // Select
-            get => _sqlSelect ?? "SELECT * FROM " + SqlFrom;
+            get => _sqlSelect ?? "SELECT *, Price*Qty AS [Total] FROM " + SqlFrom;
             set => _sqlSelect = value;
         }
 
@@ -806,6 +825,7 @@ public partial class project1 {
                 Qty.DbValue = row["Qty"]; // Set DB value only
                 Price.DbValue = row["Price"]; // Set DB value only
                 OrderID.DbValue = row["OrderID"]; // Set DB value only
+                Total.DbValue = row["Total"]; // Set DB value only
             } catch {}
         }
 
@@ -1188,6 +1208,7 @@ public partial class project1 {
             Qty.SetDbValue(dr["Qty"]);
             Price.SetDbValue(dr["Price"]);
             OrderID.SetDbValue(dr["OrderID"]);
+            Total.SetDbValue(dr["Total"]);
         }
 
         // Render list content
@@ -1229,6 +1250,9 @@ public partial class project1 {
             // OrderID
             OrderID.CellCssStyle = "white-space: nowrap;";
 
+            // Total
+            Total.CellCssStyle = "white-space: nowrap;";
+
             // ID
             ID.ViewValue = ID.CurrentValue;
             ID.ViewValue = FormatNumber(ID.ViewValue, ID.FormatPattern);
@@ -1269,6 +1293,11 @@ public partial class project1 {
             }
             OrderID.ViewCustomAttributes = "";
 
+            // Total
+            Total.ViewValue = Total.CurrentValue;
+            Total.ViewValue = FormatNumber(Total.ViewValue, Total.FormatPattern);
+            Total.ViewCustomAttributes = "";
+
             // ID
             ID.HrefValue = "";
             ID.TooltipValue = "";
@@ -1288,6 +1317,10 @@ public partial class project1 {
             // OrderID
             OrderID.HrefValue = "";
             OrderID.TooltipValue = "";
+
+            // Total
+            Total.HrefValue = "";
+            Total.TooltipValue = "";
 
             // Call Row Rendered event
             RowRendered();
@@ -1362,6 +1395,13 @@ public partial class project1 {
                     OrderID.EditValue = FormatNumber(OrderID.EditValue, null);
             }
 
+            // Total
+            Total.SetupEditAttributes();
+            Total.EditValue = Total.CurrentValue; // DN
+            Total.PlaceHolder = RemoveHtml(Total.Caption);
+            if (!Empty(Total.EditValue) && IsNumeric(Total.EditValue))
+                Total.EditValue = FormatNumber(Total.EditValue, null);
+
             // Call Row Rendered event
             RowRendered();
         }
@@ -1370,12 +1410,27 @@ public partial class project1 {
         // Aggregate list row values
         public void AggregateListRowValues()
         {
+            if (IsNumeric(Qty.CurrentValue))
+                Qty.Total += ConvertToDouble(Qty.CurrentValue); // Accumulate total
+            if (IsNumeric(Total.CurrentValue))
+                Total.Total += ConvertToDouble(Total.CurrentValue); // Accumulate total
         }
 
         #pragma warning disable 1998
         // Aggregate list row (for rendering)
         public async Task AggregateListRow()
         {
+            Qty.CurrentValue = Qty.Total;
+            Qty.ViewValue = Qty.CurrentValue;
+            Qty.ViewValue = FormatNumber(Qty.ViewValue, Qty.FormatPattern);
+            Qty.ViewCustomAttributes = "";
+            Qty.HrefValue = ""; // Clear href value
+            Total.CurrentValue = Total.Total;
+            Total.ViewValue = Total.CurrentValue;
+            Total.ViewValue = FormatNumber(Total.ViewValue, Total.FormatPattern);
+            Total.ViewCustomAttributes = "";
+            Total.HrefValue = ""; // Clear href value
+
             // Call Row Rendered event
             RowRendered();
         }
@@ -1397,10 +1452,12 @@ public partial class project1 {
                         doc.ExportCaption(ItemName);
                         doc.ExportCaption(Qty);
                         doc.ExportCaption(Price);
+                        doc.ExportCaption(Total);
                     } else {
                         doc.ExportCaption(ItemName);
                         doc.ExportCaption(Qty);
                         doc.ExportCaption(Price);
+                        doc.ExportCaption(Total);
                     }
                     doc.EndExportRow();
                 }
@@ -1430,6 +1487,7 @@ public partial class project1 {
                             doc.ExportPageBreak();
                     }
                     LoadListRowValues(dataReader);
+                    AggregateListRowValues(); // Aggregate row values
 
                     // Render row
                     RowType = RowType.View; // Render view
@@ -1441,10 +1499,12 @@ public partial class project1 {
                             await doc.ExportField(ItemName);
                             await doc.ExportField(Qty);
                             await doc.ExportField(Price);
+                            await doc.ExportField(Total);
                         } else {
                             await doc.ExportField(ItemName);
                             await doc.ExportField(Qty);
                             await doc.ExportField(Price);
+                            await doc.ExportField(Total);
                         }
                         doc.EndExportRow(rowcnt);
                     }
@@ -1454,6 +1514,21 @@ public partial class project1 {
                 if (doc.ExportCustom)
                     RowExport(doc, dataReader);
             } while (recCnt < stopRec && await dataReader.ReadAsync()); // DN
+
+            // Export aggregates (horizontal format only)
+            if (doc.Horizontal) {
+                RowType = RowType.Aggregate;
+                ResetAttributes();
+                await AggregateListRow();
+                if (!doc.ExportCustom) {
+                    doc.BeginExportRow(-1);
+                    doc.ExportAggregate(ItemName, "");
+                    doc.ExportAggregate(Qty, "TOTAL");
+                    doc.ExportAggregate(Price, "");
+                    doc.ExportAggregate(Total, "TOTAL");
+                    doc.EndExportRow();
+                }
+            }
             if (!doc.ExportCustom)
                 doc.ExportTableFooter();
         }

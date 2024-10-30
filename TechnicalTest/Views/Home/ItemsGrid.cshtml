@@ -43,14 +43,15 @@ loadjs.ready(["wrapper", "head"], function () {
 
             ["ItemName", [fields.ItemName.visible && fields.ItemName.required ? ew.Validators.required(fields.ItemName.caption) : null], fields.ItemName.isInvalid],
             ["Qty", [fields.Qty.visible && fields.Qty.required ? ew.Validators.required(fields.Qty.caption) : null, ew.Validators.integer], fields.Qty.isInvalid],
-            ["Price", [fields.Price.visible && fields.Price.required ? ew.Validators.required(fields.Price.caption) : null], fields.Price.isInvalid]
+            ["Price", [fields.Price.visible && fields.Price.required ? ew.Validators.required(fields.Price.caption) : null], fields.Price.isInvalid],
+            ["Total", [fields.Total.visible && fields.Total.required ? ew.Validators.required(fields.Total.caption) : null, ew.Validators.integer], fields.Total.isInvalid]
         ])
 
         // Check empty row
         .setEmptyRow(
             function (rowIndex) {
                 let fobj = this.getForm(),
-                    fields = [["ItemName",false],["Qty",false],["Price",false]];
+                    fields = [["ItemName",false],["Qty",false],["Price",false],["Total",false]];
                 if (fields.some(field => ew.valueChanged(fobj, rowIndex, ...field)))
                     return false;
                 return true;
@@ -104,6 +105,9 @@ loadjs.ready(["wrapper", "head"], function () {
 @if (itemsGrid.Price.Visible) { // itemsGrid.Price.Visible (begin)
         <th data-name="Price" class="@(itemsGrid.Price.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_Price" class="Items_Price">@Html.Raw(itemsGrid.RenderFieldHeader(itemsGrid.Price))</div></th>
 } @* itemsGrid.Price.Visible (end) *@
+@if (itemsGrid.Total.Visible) { // itemsGrid.Total.Visible (begin)
+        <th data-name="Total" class="@(itemsGrid.Total.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_Total" class="Items_Total">@Html.Raw(itemsGrid.RenderFieldHeader(itemsGrid.Total))</div></th>
+} @* itemsGrid.Total.Visible (end) *@
 @* Render list options (header, right) *@
 @itemsGrid.ListOptions.RenderHeader("right")
     </tr>
@@ -229,6 +233,39 @@ loadjs.ready(["wrapper", "head"], function () {
 } @* View (end) *@
 </td>
     } @* itemsGrid.Price.Visible (end) *@
+    @if (itemsGrid.Total.Visible) { // itemsGrid.Total.Visible (begin)
+        <td data-name="Total" @Html.Raw(itemsGrid.Total.CellAttributes)>
+@if (itemsGrid.RowType == RowType.Add) { // Add (begin)
+    @* Total (begin) *@
+    <span id="el@(itemsGrid.RowIndex == "$rowindex$" ? "$rowindex$" : itemsGrid.RowCount)_Items_Total" class="el_Items_Total">
+    <input type="@(itemsGrid.Total.InputTextType)" name="x@(itemsGrid.RowIndex)_Total" id="x@(itemsGrid.RowIndex)_Total" data-table="Items" data-field="x_Total" value="@Html.Raw(itemsGrid.Total.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsGrid.Total.PlaceHolder))" data-format-pattern="@(itemsGrid.Total.FormatPattern)"@Html.Raw(itemsGrid.Total.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsGrid.Total.GetErrorMessage())</div>
+    </span>
+    <input type="hidden" data-table="Items" data-field="x_Total" data-hidden="1" data-old name="o@(itemsGrid.RowIndex)_Total" id="o@(itemsGrid.RowIndex)_Total" value="@Html.Raw(HtmlEncode(itemsGrid.Total.OldValue))">
+    @* Total (end) *@
+} @* Add (end) *@
+@if (itemsGrid.RowType == RowType.Edit) { // Edit (begin)
+    @* Total (begin) *@
+    <span id="el@(itemsGrid.RowIndex == "$rowindex$" ? "$rowindex$" : itemsGrid.RowCount)_Items_Total" class="el_Items_Total">
+    <input type="@(itemsGrid.Total.InputTextType)" name="x@(itemsGrid.RowIndex)_Total" id="x@(itemsGrid.RowIndex)_Total" data-table="Items" data-field="x_Total" value="@Html.Raw(itemsGrid.Total.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsGrid.Total.PlaceHolder))" data-format-pattern="@(itemsGrid.Total.FormatPattern)"@Html.Raw(itemsGrid.Total.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsGrid.Total.GetErrorMessage())</div>
+    </span>
+    @* Total (end) *@
+} @* Edit (end) *@
+@if (itemsGrid.RowType == RowType.View) { // View (begin)
+    @* Total (begin) *@
+    <span id="el@(itemsGrid.RowIndex == "$rowindex$" ? "$rowindex$" : itemsGrid.RowCount)_Items_Total" class="el_Items_Total">
+    <span @Html.Raw(itemsGrid.Total.ViewAttributes)>
+    @Html.Raw(itemsGrid.Total.GetViewValue())</span>
+    </span>
+    if (itemsGrid.IsConfirm) {
+    <input type="hidden" data-table="Items" data-field="x_Total" data-hidden="1" name="fItemsgrid$x@(itemsGrid.RowIndex)_Total" id="fItemsgrid$x@(itemsGrid.RowIndex)_Total" value="@Html.Raw(HtmlEncode(itemsGrid.Total.FormValue))">
+    <input type="hidden" data-table="Items" data-field="x_Total" data-hidden="1" data-old name="fItemsgrid$o@(itemsGrid.RowIndex)_Total" id="fItemsgrid$o@(itemsGrid.RowIndex)_Total" value="@Html.Raw(HtmlEncode(itemsGrid.Total.OldValue))">
+    }
+    @* Total (end) *@
+} @* View (end) *@
+</td>
+    } @* itemsGrid.Total.Visible (end) *@
     @* Render list options (body, right) *@
     @itemsGrid.ListOptions.RenderBody("right", itemsGrid.RowCount)
     </tr>
@@ -249,6 +286,48 @@ loadjs.ready(["fItemsgrid","load"], () => fItemsgrid.updateLists(@(itemsGrid.Row
         itemsGrid.RowIndex = 1;
 } @* End While *@
 </tbody>
+@{
+// Render aggregate row
+    itemsGrid.RowType = RowType.Aggregate;
+    itemsGrid.ResetAttributes();
+    await itemsGrid.RenderRow();
+}
+@if (itemsGrid.TotalRecords > 0 && itemsGrid.CurrentMode == "view") {
+<tfoot><!-- Table footer -->
+    <tr class="ew-table-footer">
+@{
+    // Render list options
+    await itemsGrid.RenderListOptions();
+}
+@* Render list options (footer, left) *@
+@itemsGrid.ListOptions.RenderFooter("left")
+    @if (itemsGrid.ItemName.Visible) { @* itemsGrid.ItemName.Visible (begin) *@
+        <td data-name="ItemName" class="@Html.Raw(itemsGrid.ItemName.FooterCellClass)"><span id="elf_Items_ItemName" class="Items_ItemName">
+        &nbsp;
+        </span></td>
+    } @* itemsGrid.ItemName.Visible (end) *@
+    @if (itemsGrid.Qty.Visible) { @* itemsGrid.Qty.Visible (begin) *@
+        <td data-name="Qty" class="@Html.Raw(itemsGrid.Qty.FooterCellClass)"><span id="elf_Items_Qty" class="Items_Qty">
+        <span class="ew-aggregate">@Html.Raw(Language.Phrase("TOTAL"))</span><span class="ew-aggregate-value">
+        @Html.Raw(itemsGrid.Qty.ViewValue)</span>
+        </span></td>
+    } @* itemsGrid.Qty.Visible (end) *@
+    @if (itemsGrid.Price.Visible) { @* itemsGrid.Price.Visible (begin) *@
+        <td data-name="Price" class="@Html.Raw(itemsGrid.Price.FooterCellClass)"><span id="elf_Items_Price" class="Items_Price">
+        &nbsp;
+        </span></td>
+    } @* itemsGrid.Price.Visible (end) *@
+    @if (itemsGrid.Total.Visible) { @* itemsGrid.Total.Visible (begin) *@
+        <td data-name="Total" class="@Html.Raw(itemsGrid.Total.FooterCellClass)"><span id="elf_Items_Total" class="Items_Total">
+        <span class="ew-aggregate">@Html.Raw(Language.Phrase("TOTAL"))</span><span class="ew-aggregate-value">
+        @Html.Raw(itemsGrid.Total.ViewValue)</span>
+        </span></td>
+    } @* itemsGrid.Total.Visible (end) *@
+@* Render list options (footer, right) *@
+@itemsGrid.ListOptions.RenderFooter("right")
+    </tr>
+</tfoot>
+}
 </table><!-- /.ew-table -->
 @if (itemsGrid.CurrentMode == "add" || itemsGrid.CurrentMode == "copy") {
 <input type="hidden" name="@(itemsGrid.FormKeyCountName)" id="@(itemsGrid.FormKeyCountName)" value="@(itemsGrid.KeyCount)">

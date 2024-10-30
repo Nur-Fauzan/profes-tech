@@ -221,6 +221,7 @@ public partial class project1 {
             Qty.SetVisibility();
             Price.SetVisibility();
             OrderID.Visible = false;
+            Total.SetVisibility();
         }
 
         /// <summary>
@@ -1062,6 +1063,9 @@ public partial class project1 {
             if (CurrentForm.HasValue("x_Price") && CurrentForm.HasValue("o_Price") && !SameString(Price.CurrentValue, Price.DefaultValue) &&
             !(Price.IsForeignKey && CurrentMasterTable != "" && SameString(Price.CurrentValue, Price.SessionValue)))
                 return false;
+            if (CurrentForm.HasValue("x_Total") && CurrentForm.HasValue("o_Total") && !SameString(Total.CurrentValue, Total.DefaultValue) &&
+            !(Total.IsForeignKey && CurrentMasterTable != "" && SameString(Total.CurrentValue, Total.SessionValue)))
+                return false;
             return true;
         }
 
@@ -1140,6 +1144,7 @@ public partial class project1 {
             ItemName.ClearErrorMessage();
             Qty.ClearErrorMessage();
             Price.ClearErrorMessage();
+            Total.ClearErrorMessage();
         }
 
         // Set up sort parameters
@@ -1200,21 +1205,21 @@ public partial class project1 {
             if (AllowAddDeleteRow) {
                 item = ListOptions.Add("griddelete");
                 item.CssClass = "text-nowrap";
-                item.OnLeft = false;
+                item.OnLeft = true;
                 item.Visible = false; // Default hidden
             }
 
             // Add group option item
             item = ListOptions.AddGroupOption();
             item.Body = "";
-            item.OnLeft = false;
+            item.OnLeft = true;
             item.Visible = false;
 
             // "delete"
             item = ListOptions.Add("delete");
             item.CssClass = "text-nowrap";
             item.Visible = true;
-            item.OnLeft = false;
+            item.OnLeft = true;
 
             // "sequence"
             item = ListOptions.Add("sequence");
@@ -1563,6 +1568,17 @@ public partial class project1 {
             if (CurrentForm.HasValue("o_Price"))
                 Price.OldValue = CurrentForm.GetValue("o_Price");
 
+            // Check field name 'Total' before field var 'x_Total'
+            val = CurrentForm.HasValue("Total") ? CurrentForm.GetValue("Total") : CurrentForm.GetValue("x_Total");
+            if (!Total.IsDetailKey) {
+                if (IsApi() && !CurrentForm.HasValue("Total") && !CurrentForm.HasValue("x_Total")) // DN
+                    Total.Visible = false; // Disable update for API request
+                else
+                    Total.SetFormValue(val, true, validate);
+            }
+            if (CurrentForm.HasValue("o_Total"))
+                Total.OldValue = CurrentForm.GetValue("o_Total");
+
             // Check field name 'ID' before field var 'x_ID'
             val = CurrentForm.HasValue("ID") ? CurrentForm.GetValue("ID") : CurrentForm.GetValue("x_ID");
             if (!ID.IsDetailKey && !IsGridAdd && !IsAdd)
@@ -1578,6 +1594,7 @@ public partial class project1 {
             ItemName.CurrentValue = ItemName.FormValue;
             Qty.CurrentValue = Qty.FormValue;
             Price.CurrentValue = Price.FormValue;
+            Total.CurrentValue = Total.FormValue;
         }
 
         // Load recordset // DN
@@ -1650,6 +1667,7 @@ public partial class project1 {
             Qty.SetDbValue(row["Qty"]);
             Price.SetDbValue(row["Price"]);
             OrderID.SetDbValue(row["OrderID"]);
+            Total.SetDbValue(row["Total"]);
         }
         #pragma warning restore 162, 168, 1998, 4014
 
@@ -1661,6 +1679,7 @@ public partial class project1 {
             row.Add("Qty", Qty.DefaultValue ?? DbNullValue); // DN
             row.Add("Price", Price.DefaultValue ?? DbNullValue); // DN
             row.Add("OrderID", OrderID.DefaultValue ?? DbNullValue); // DN
+            row.Add("Total", Total.DefaultValue ?? DbNullValue); // DN
             return row;
         }
 
@@ -1709,6 +1728,17 @@ public partial class project1 {
             // OrderID
             OrderID.CellCssStyle = "white-space: nowrap;";
 
+            // Total
+            Total.CellCssStyle = "white-space: nowrap;";
+
+            // Accumulate aggregate value
+            if (RowType != RowType.AggregateInit && RowType != RowType.Aggregate && RowType != RowType.PreviewField) {
+                if (IsNumeric(Qty.CurrentValue))
+                    Qty.Total += ConvertToDouble(Qty.CurrentValue); // Accumulate total
+                if (IsNumeric(Total.CurrentValue))
+                    Total.Total += ConvertToDouble(Total.CurrentValue); // Accumulate total
+            }
+
             // View row
             if (RowType == RowType.View) {
                 // ItemName
@@ -1724,6 +1754,11 @@ public partial class project1 {
                 Price.ViewValue = ConvertToString(Price.CurrentValue); // DN
                 Price.ViewCustomAttributes = "";
 
+                // Total
+                Total.ViewValue = Total.CurrentValue;
+                Total.ViewValue = FormatNumber(Total.ViewValue, Total.FormatPattern);
+                Total.ViewCustomAttributes = "";
+
                 // ItemName
                 ItemName.HrefValue = "";
                 ItemName.TooltipValue = "";
@@ -1735,6 +1770,10 @@ public partial class project1 {
                 // Price
                 Price.HrefValue = "";
                 Price.TooltipValue = "";
+
+                // Total
+                Total.HrefValue = "";
+                Total.TooltipValue = "";
             } else if (RowType == RowType.Add) {
                 // ItemName
                 ItemName.SetupEditAttributes();
@@ -1758,6 +1797,14 @@ public partial class project1 {
                 Price.EditValue = HtmlEncode(Price.CurrentValue);
                 Price.PlaceHolder = RemoveHtml(Price.Caption);
 
+                // Total
+                Total.SetupEditAttributes();
+                Total.EditValue = Total.CurrentValue; // DN
+                Total.PlaceHolder = RemoveHtml(Total.Caption);
+                if (!Empty(Total.EditValue) && IsNumeric(Total.EditValue)) {
+                    Total.EditValue = FormatNumber(Total.EditValue, null);
+                }
+
                 // Add refer script
 
                 // ItemName
@@ -1768,6 +1815,9 @@ public partial class project1 {
 
                 // Price
                 Price.HrefValue = "";
+
+                // Total
+                Total.HrefValue = "";
             } else if (RowType == RowType.Edit) {
                 // ItemName
                 ItemName.SetupEditAttributes();
@@ -1791,6 +1841,14 @@ public partial class project1 {
                 Price.EditValue = HtmlEncode(Price.CurrentValue);
                 Price.PlaceHolder = RemoveHtml(Price.Caption);
 
+                // Total
+                Total.SetupEditAttributes();
+                Total.EditValue = Total.CurrentValue; // DN
+                Total.PlaceHolder = RemoveHtml(Total.Caption);
+                if (!Empty(Total.EditValue) && IsNumeric(Total.EditValue)) {
+                    Total.EditValue = FormatNumber(Total.EditValue, null);
+                }
+
                 // Edit refer script
 
                 // ItemName
@@ -1801,6 +1859,23 @@ public partial class project1 {
 
                 // Price
                 Price.HrefValue = "";
+
+                // Total
+                Total.HrefValue = "";
+            } else if (RowType == RowType.AggregateInit) { // Initialize aggregate row
+                Qty.Total = 0; // Initialize total
+                Total.Total = 0; // Initialize total
+            } else if (RowType == RowType.Aggregate) { // Aggregate row
+                Qty.CurrentValue = Qty.Total;
+                Qty.ViewValue = Qty.CurrentValue;
+                Qty.ViewValue = FormatNumber(Qty.ViewValue, Qty.FormatPattern);
+                Qty.ViewCustomAttributes = "";
+                Qty.HrefValue = ""; // Clear href value
+                Total.CurrentValue = Total.Total;
+                Total.ViewValue = Total.CurrentValue;
+                Total.ViewValue = FormatNumber(Total.ViewValue, Total.FormatPattern);
+                Total.ViewCustomAttributes = "";
+                Total.HrefValue = ""; // Clear href value
             }
             if (RowType == RowType.Add || RowType == RowType.Edit || RowType == RowType.Search) // Add/Edit/Search row
                 SetupFieldTitles();
@@ -1835,6 +1910,14 @@ public partial class project1 {
                 if (!Price.IsDetailKey && Empty(Price.FormValue)) {
                     Price.AddErrorMessage(ConvertToString(Price.RequiredErrorMessage).Replace("%s", Price.Caption));
                 }
+            }
+            if (Total.Required) {
+                if (!Total.IsDetailKey && Empty(Total.FormValue)) {
+                    Total.AddErrorMessage(ConvertToString(Total.RequiredErrorMessage).Replace("%s", Total.Caption));
+                }
+            }
+            if (!CheckInteger(Total.FormValue)) {
+                Total.AddErrorMessage(Total.GetErrorMessage(false));
             }
 
             // Return validate result
@@ -1969,6 +2052,9 @@ public partial class project1 {
             // Price
             Price.SetDbValue(rsnew, Price.CurrentValue, Price.ReadOnly);
 
+            // Total
+            Total.SetDbValue(rsnew, Total.CurrentValue, Total.ReadOnly);
+
             // Update current values
             SetCurrentValues(rsnew);
             bool validMasterRecord;
@@ -2046,6 +2132,9 @@ public partial class project1 {
 
                 // Price
                 Price.SetDbValue(rsnew, Price.CurrentValue);
+
+                // Total
+                Total.SetDbValue(rsnew, Total.CurrentValue);
 
                 // OrderID
                 if (!Empty(OrderID.SessionValue)) {

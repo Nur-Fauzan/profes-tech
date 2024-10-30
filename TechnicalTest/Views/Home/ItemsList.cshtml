@@ -46,7 +46,8 @@ loadjs.ready(["wrapper", "head"], function () {
 
             ["ItemName", [fields.ItemName.visible && fields.ItemName.required ? ew.Validators.required(fields.ItemName.caption) : null], fields.ItemName.isInvalid],
             ["Qty", [fields.Qty.visible && fields.Qty.required ? ew.Validators.required(fields.Qty.caption) : null, ew.Validators.integer], fields.Qty.isInvalid],
-            ["Price", [fields.Price.visible && fields.Price.required ? ew.Validators.required(fields.Price.caption) : null], fields.Price.isInvalid]
+            ["Price", [fields.Price.visible && fields.Price.required ? ew.Validators.required(fields.Price.caption) : null], fields.Price.isInvalid],
+            ["Total", [fields.Total.visible && fields.Total.required ? ew.Validators.required(fields.Total.caption) : null, ew.Validators.integer], fields.Total.isInvalid]
         ])
 
         // Form_CustomValidate
@@ -62,9 +63,6 @@ loadjs.ready(["wrapper", "head"], function () {
 
         // Dynamic selection lists
         .setLists({
-            "ItemName": @Html.Raw(itemsList.ItemName.ToClientList(itemsList)),
-            "Qty": @Html.Raw(itemsList.Qty.ToClientList(itemsList)),
-            "Price": @Html.Raw(itemsList.Price.ToClientList(itemsList)),
         })
         .build();
     window[form.id] = form;
@@ -101,9 +99,6 @@ if (!Empty(itemsList.DbMasterFilter) && itemsList.CurrentMasterTable == "Orders"
     }
 }
 }
-@if (itemsList.ShowCurrentFilter) {
-    itemsList.ShowFilterList();
-}
 @if (!itemsList.IsModal) {
 <form name="fItemssrch" id="fItemssrch" class="ew-form ew-ext-search-form" action="@AppPath(CurrentPageName())" novalidate autocomplete="off">
 <div id="fItemssrch_search_panel" class="mb-2 mb-sm-0 @(itemsList.SearchPanelClass)"><!-- .ew-search-panel -->
@@ -124,49 +119,8 @@ loadjs.ready(["wrapper", "head"], function () {
         <text>.setSubmitWithFetch(true)</text>
 }
 
-        // Add fields
-        .setFields([
-
-            ["ItemName", [], fields.ItemName.isInvalid],
-            ["Qty", [], fields.Qty.isInvalid],
-            ["Price", [], fields.Price.isInvalid]
-        ])
-        // Validate form
-        .setValidate(
-            async function () {
-                if (!this.validateRequired)
-                    return true; // Ignore validation
-                let fobj = this.getForm();
-
-                // Validate fields
-                if (!this.validateFields())
-                    return false;
-
-                // Call Form_CustomValidate event
-                if (!(await this.customValidate?.(fobj) ?? true)) {
-                    this.focus();
-                    return false;
-                }
-                return true;
-            }
-        )
-
-        // Form_CustomValidate
-        .setCustomValidate(
-            function(fobj) { // DO NOT CHANGE THIS LINE!
-                    // Your custom validation code here, return false if invalid.
-                    return true;
-                }
-        )
-
-        // Use JavaScript validation or not
-        .setValidateRequired(ew.CLIENT_VALIDATE)
-
         // Dynamic selection lists
         .setLists({
-            "ItemName": @Html.Raw(itemsList.ItemName.ToClientList(itemsList)),
-            "Qty": @Html.Raw(itemsList.Qty.ToClientList(itemsList)),
-            "Price": @Html.Raw(itemsList.Price.ToClientList(itemsList)),
         })
 
         // Filters
@@ -180,122 +134,6 @@ loadjs.ready(["wrapper", "head"], function () {
 <input type="hidden" name="cmd" value="search">
 @if (!itemsList.IsExport() && Empty(itemsList.CurrentAction) && itemsList.HasSearchFields()) { @* Show search form (begin) *@
 <div class="ew-extended-search container-fluid ps-2">
-<div class="row mb-0@(itemsList.SearchFieldsPerRow > 0 ? " row-cols-sm-" + itemsList.SearchFieldsPerRow : "")">
-@{
-    // Render search row
-    itemsList.RowType = RowType.Search;
-    itemsList.ResetAttributes();
-    await itemsList.RenderRow();
-}
-@if (itemsList.ItemName.Visible) { // itemsList.ItemName.Visible (begin)
-    if (!itemsList.ItemName.UseFilter) {
-        itemsList.SearchColumnCount++;
-    }
-    <div id="xs_ItemName" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(itemsList.ItemName.UseFilter ? " ew-filter-field" : "")">
-        <select
-            id="x_ItemName"
-            name="x_ItemName[]"
-            class="form-control ew-select@(itemsList.ItemName.IsInvalidClass)"
-            data-select2-id="fItemssrch_x_ItemName"
-            data-table="Items"
-            data-field="x_ItemName"
-            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(itemsList.ItemName.Caption)))"
-            data-filter="true"
-            multiple
-            size="1"
-            data-value-separator="@(itemsList.ItemName.DisplayValueSeparatorAttribute)"
-            data-placeholder="@(HtmlEncode(itemsList.ItemName.PlaceHolder))"
-            data-ew-action="update-options"
-            @Html.Raw(itemsList.ItemName.EditAttributes)>
-            @(itemsList.ItemName.SelectOptionListHtml("x_ItemName", true))
-        </select>
-        <div class="invalid-feedback">@Html.Raw(itemsList.ItemName.GetErrorMessage(false))</div>
-        <script>
-        loadjs.ready("fItemssrch", function() {
-            var options = {
-                name: "x_ItemName",
-                selectId: "fItemssrch_x_ItemName",
-                ajax: { id: "x_ItemName", form: "fItemssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
-            };
-            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Items.fields.ItemName.filterOptions);
-            ew.createFilter(options);
-        });
-        </script>
-    </div><!-- /.col-sm-auto -->
-} @* itemsList.ItemName.Visible (end) *@
-@if (itemsList.Qty.Visible) { // itemsList.Qty.Visible (begin)
-    if (!itemsList.Qty.UseFilter) {
-        itemsList.SearchColumnCount++;
-    }
-    <div id="xs_Qty" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(itemsList.Qty.UseFilter ? " ew-filter-field" : "")">
-        <select
-            id="x_Qty"
-            name="x_Qty[]"
-            class="form-control ew-select@(itemsList.Qty.IsInvalidClass)"
-            data-select2-id="fItemssrch_x_Qty"
-            data-table="Items"
-            data-field="x_Qty"
-            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(itemsList.Qty.Caption)))"
-            data-filter="true"
-            multiple
-            size="1"
-            data-value-separator="@(itemsList.Qty.DisplayValueSeparatorAttribute)"
-            data-placeholder="@(HtmlEncode(itemsList.Qty.PlaceHolder))"
-            data-ew-action="update-options"
-            @Html.Raw(itemsList.Qty.EditAttributes)>
-            @(itemsList.Qty.SelectOptionListHtml("x_Qty", true))
-        </select>
-        <div class="invalid-feedback">@Html.Raw(itemsList.Qty.GetErrorMessage(false))</div>
-        <script>
-        loadjs.ready("fItemssrch", function() {
-            var options = {
-                name: "x_Qty",
-                selectId: "fItemssrch_x_Qty",
-                ajax: { id: "x_Qty", form: "fItemssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
-            };
-            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Items.fields.Qty.filterOptions);
-            ew.createFilter(options);
-        });
-        </script>
-    </div><!-- /.col-sm-auto -->
-} @* itemsList.Qty.Visible (end) *@
-@if (itemsList.Price.Visible) { // itemsList.Price.Visible (begin)
-    if (!itemsList.Price.UseFilter) {
-        itemsList.SearchColumnCount++;
-    }
-    <div id="xs_Price" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(itemsList.Price.UseFilter ? " ew-filter-field" : "")">
-        <select
-            id="x_Price"
-            name="x_Price[]"
-            class="form-control ew-select@(itemsList.Price.IsInvalidClass)"
-            data-select2-id="fItemssrch_x_Price"
-            data-table="Items"
-            data-field="x_Price"
-            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(itemsList.Price.Caption)))"
-            data-filter="true"
-            multiple
-            size="1"
-            data-value-separator="@(itemsList.Price.DisplayValueSeparatorAttribute)"
-            data-placeholder="@(HtmlEncode(itemsList.Price.PlaceHolder))"
-            data-ew-action="update-options"
-            @Html.Raw(itemsList.Price.EditAttributes)>
-            @(itemsList.Price.SelectOptionListHtml("x_Price", true))
-        </select>
-        <div class="invalid-feedback">@Html.Raw(itemsList.Price.GetErrorMessage(false))</div>
-        <script>
-        loadjs.ready("fItemssrch", function() {
-            var options = {
-                name: "x_Price",
-                selectId: "fItemssrch_x_Price",
-                ajax: { id: "x_Price", form: "fItemssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
-            };
-            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Items.fields.Price.filterOptions);
-            ew.createFilter(options);
-        });
-        </script>
-    </div><!-- /.col-sm-auto -->
-} @* itemsList.Price.Visible (end) *@
-</div><!-- /.row -->
 <div class="row mb-0">
     <div class="col-sm-auto px-0 pe-sm-2">
         <div class="ew-basic-search input-group">
@@ -362,6 +200,9 @@ loadjs.ready(["wrapper", "head"], function () {
 @if (itemsList.Price.Visible) { // itemsList.Price.Visible (begin)
         <th data-name="Price" class="@(itemsList.Price.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_Price" class="Items_Price">@Html.Raw(itemsList.RenderFieldHeader(itemsList.Price))</div></th>
 } @* itemsList.Price.Visible (end) *@
+@if (itemsList.Total.Visible) { // itemsList.Total.Visible (begin)
+        <th data-name="Total" class="@(itemsList.Total.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_Total" class="Items_Total">@Html.Raw(itemsList.RenderFieldHeader(itemsList.Total))</div></th>
+} @* itemsList.Total.Visible (end) *@
 @* Render list options (header, right) *@
 @itemsList.ListOptions.RenderHeader("right")
     </tr>
@@ -469,6 +310,35 @@ loadjs.ready(["wrapper", "head"], function () {
 } @* View (end) *@
 </td>
     } @* itemsList.Price.Visible (end) *@
+    @if (itemsList.Total.Visible) { // itemsList.Total.Visible (begin)
+        <td data-name="Total" @Html.Raw(itemsList.Total.CellAttributes)>
+@if (itemsList.RowType == RowType.Add) { // Add (begin)
+    @* Total (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_Total" class="el_Items_Total">
+    <input type="@(itemsList.Total.InputTextType)" name="x@(itemsList.RowIndex)_Total" id="x@(itemsList.RowIndex)_Total" data-table="Items" data-field="x_Total" value="@Html.Raw(itemsList.Total.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsList.Total.PlaceHolder))" data-format-pattern="@(itemsList.Total.FormatPattern)"@Html.Raw(itemsList.Total.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsList.Total.GetErrorMessage())</div>
+    </span>
+    <input type="hidden" data-table="Items" data-field="x_Total" data-hidden="1" data-old name="o@(itemsList.RowIndex)_Total" id="o@(itemsList.RowIndex)_Total" value="@Html.Raw(HtmlEncode(itemsList.Total.OldValue))">
+    @* Total (end) *@
+} @* Add (end) *@
+@if (itemsList.RowType == RowType.Edit) { // Edit (begin)
+    @* Total (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_Total" class="el_Items_Total">
+    <input type="@(itemsList.Total.InputTextType)" name="x@(itemsList.RowIndex)_Total" id="x@(itemsList.RowIndex)_Total" data-table="Items" data-field="x_Total" value="@Html.Raw(itemsList.Total.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsList.Total.PlaceHolder))" data-format-pattern="@(itemsList.Total.FormatPattern)"@Html.Raw(itemsList.Total.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsList.Total.GetErrorMessage())</div>
+    </span>
+    @* Total (end) *@
+} @* Edit (end) *@
+@if (itemsList.RowType == RowType.View) { // View (begin)
+    @* Total (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_Total" class="el_Items_Total">
+    <span @Html.Raw(itemsList.Total.ViewAttributes)>
+    @Html.Raw(itemsList.Total.GetViewValue())</span>
+    </span>
+    @* Total (end) *@
+} @* View (end) *@
+</td>
+    } @* itemsList.Total.Visible (end) *@
     @* Render list options (body, right) *@
     @itemsList.ListOptions.RenderBody("right", itemsList.RowCount)
     </tr>
@@ -488,6 +358,48 @@ loadjs.ready(["@(itemsList.FormName)","load"], () => @(itemsList.FormName).updat
         itemsList.RowIndex = 1;
 } @* End While *@
 </tbody>
+@{
+// Render aggregate row
+    itemsList.RowType = RowType.Aggregate;
+    itemsList.ResetAttributes();
+    await itemsList.RenderRow();
+}
+@if (itemsList.TotalRecords > 0 && !itemsList.IsGridAdd && !itemsList.IsGridEdit && !itemsList.IsMultiEdit) {
+<tfoot><!-- Table footer -->
+    <tr class="ew-table-footer">
+@{
+    // Render list options
+    await itemsList.RenderListOptions();
+}
+@* Render list options (footer, left) *@
+@itemsList.ListOptions.RenderFooter("left")
+    @if (itemsList.ItemName.Visible) { @* itemsList.ItemName.Visible (begin) *@
+        <td data-name="ItemName" class="@Html.Raw(itemsList.ItemName.FooterCellClass)"><span id="elf_Items_ItemName" class="Items_ItemName">
+        &nbsp;
+        </span></td>
+    } @* itemsList.ItemName.Visible (end) *@
+    @if (itemsList.Qty.Visible) { @* itemsList.Qty.Visible (begin) *@
+        <td data-name="Qty" class="@Html.Raw(itemsList.Qty.FooterCellClass)"><span id="elf_Items_Qty" class="Items_Qty">
+        <span class="ew-aggregate">@Html.Raw(Language.Phrase("TOTAL"))</span><span class="ew-aggregate-value">
+        @Html.Raw(itemsList.Qty.ViewValue)</span>
+        </span></td>
+    } @* itemsList.Qty.Visible (end) *@
+    @if (itemsList.Price.Visible) { @* itemsList.Price.Visible (begin) *@
+        <td data-name="Price" class="@Html.Raw(itemsList.Price.FooterCellClass)"><span id="elf_Items_Price" class="Items_Price">
+        &nbsp;
+        </span></td>
+    } @* itemsList.Price.Visible (end) *@
+    @if (itemsList.Total.Visible) { @* itemsList.Total.Visible (begin) *@
+        <td data-name="Total" class="@Html.Raw(itemsList.Total.FooterCellClass)"><span id="elf_Items_Total" class="Items_Total">
+        <span class="ew-aggregate">@Html.Raw(Language.Phrase("TOTAL"))</span><span class="ew-aggregate-value">
+        @Html.Raw(itemsList.Total.ViewValue)</span>
+        </span></td>
+    } @* itemsList.Total.Visible (end) *@
+@* Render list options (footer, right) *@
+@itemsList.ListOptions.RenderFooter("right")
+    </tr>
+</tfoot>
+}
 </table><!-- /.ew-table -->
 } @* End If TotalRecords > 0 *@
 @if (itemsList.IsAdd || itemsList.IsCopy) {

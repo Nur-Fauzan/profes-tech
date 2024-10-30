@@ -617,7 +617,7 @@ public partial class project1 {
                 Customer.ViewCustomAttributes = "";
 
                 // Address
-                Address.ViewValue = ConvertToString(Address.CurrentValue); // DN
+                Address.ViewValue = Address.CurrentValue;
                 Address.ViewCustomAttributes = "";
 
                 // SalesOrder

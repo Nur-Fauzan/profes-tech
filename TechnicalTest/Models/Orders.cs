@@ -43,7 +43,7 @@ public partial class project1 {
 
         public bool ModalUpdate = false;
 
-        public bool InlineDelete = true;
+        public bool InlineDelete = false;
 
         public bool ModalGridAdd = false;
 
@@ -129,12 +129,10 @@ public partial class project1 {
                 ViewTag = "FORMATTED TEXT",
                 HtmlTag = "TEXT",
                 InputTextType = "text",
-                UseFilter = true, // Table header filter
                 SearchOperators = new () { "=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY", "IS NULL", "IS NOT NULL" },
                 CustomMessage = Language.FieldPhrase("Orders", "SalesOrder", "CustomMsg"),
                 IsUpload = false
             };
-            SalesOrder.Lookup = new Lookup<DbField>(SalesOrder, "Orders", true, "SalesOrder", new List<string> {"SalesOrder", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "");
             Fields.Add("SalesOrder", SalesOrder);
 
             // OrderDate
@@ -152,13 +150,11 @@ public partial class project1 {
                 ViewTag = "FORMATTED TEXT",
                 HtmlTag = "TEXT",
                 InputTextType = "text",
-                UseFilter = true, // Table header filter
                 DefaultErrorMessage = ConvertToString(Language.Phrase("IncorrectDate")).Replace("%s", CurrentDateTimeFormat.ShortDatePattern),
                 SearchOperators = new () { "=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN", "IS NULL", "IS NOT NULL" },
                 CustomMessage = Language.FieldPhrase("Orders", "OrderDate", "CustomMsg"),
                 IsUpload = false
             };
-            OrderDate.Lookup = new Lookup<DbField>(OrderDate, "Orders", true, "OrderDate", new List<string> {"OrderDate", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "");
             Fields.Add("OrderDate", OrderDate);
 
             // Customer
@@ -178,13 +174,12 @@ public partial class project1 {
                 InputTextType = "text",
                 UsePleaseSelect = true, // Use PleaseSelect by default
                 PleaseSelectText = Language.Phrase("PleaseSelect"), // PleaseSelect text
-                UseFilter = true, // Table header filter
                 OptionCount = 3,
                 SearchOperators = new () { "=", "<>", "IS NULL", "IS NOT NULL" },
                 CustomMessage = Language.FieldPhrase("Orders", "Customer", "CustomMsg"),
                 IsUpload = false
             };
-            Customer.Lookup = new Lookup<DbField>(Customer, "Orders", true, "Customer", new List<string> {"Customer", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "");
+            Customer.Lookup = new Lookup<DbField>(Customer, "Orders", false, "", new List<string> {"", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "");
             Fields.Add("Customer", Customer);
 
             // Address
@@ -200,14 +195,12 @@ public partial class project1 {
                 SelectMultiple = false,
                 VirtualSearch = false,
                 ViewTag = "FORMATTED TEXT",
-                HtmlTag = "TEXT",
+                HtmlTag = "TEXTAREA",
                 InputTextType = "text",
-                UseFilter = true, // Table header filter
                 SearchOperators = new () { "=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY", "IS NULL", "IS NOT NULL" },
                 CustomMessage = Language.FieldPhrase("Orders", "Address", "CustomMsg"),
                 IsUpload = false
             };
-            Address.Lookup = new Lookup<DbField>(Address, "Orders", true, "Address", new List<string> {"Address", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "");
             Fields.Add("Address", Address);
 
             // Call Table Load event
@@ -1259,7 +1252,7 @@ public partial class project1 {
             Customer.ViewCustomAttributes = "";
 
             // Address
-            Address.ViewValue = ConvertToString(Address.CurrentValue); // DN
+            Address.ViewValue = Address.CurrentValue;
             Address.ViewCustomAttributes = "";
 
             // ID
@@ -1321,9 +1314,7 @@ public partial class project1 {
 
             // Address
             Address.SetupEditAttributes();
-            if (!Address.Raw)
-                Address.CurrentValue = HtmlDecode(Address.CurrentValue);
-            Address.EditValue = HtmlEncode(Address.CurrentValue);
+            Address.EditValue = Address.CurrentValue; // DN
             Address.PlaceHolder = RemoveHtml(Address.Caption);
 
             // Call Row Rendered event

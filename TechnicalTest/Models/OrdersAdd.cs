@@ -854,7 +854,7 @@ public partial class project1 {
                 Customer.ViewCustomAttributes = "";
 
                 // Address
-                Address.ViewValue = ConvertToString(Address.CurrentValue); // DN
+                Address.ViewValue = Address.CurrentValue;
                 Address.ViewCustomAttributes = "";
 
                 // SalesOrder
@@ -888,9 +888,7 @@ public partial class project1 {
 
                 // Address
                 Address.SetupEditAttributes();
-                if (!Address.Raw)
-                    Address.CurrentValue = HtmlDecode(Address.CurrentValue);
-                Address.EditValue = HtmlEncode(Address.CurrentValue);
+                Address.EditValue = Address.CurrentValue; // DN
                 Address.PlaceHolder = RemoveHtml(Address.Caption);
 
                 // Add refer script

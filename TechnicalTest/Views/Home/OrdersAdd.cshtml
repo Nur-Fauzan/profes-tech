@@ -185,7 +185,7 @@ loadjs.ready("fOrdersadd", function() {
         <label id="elh_Orders_Address" for="x_Address" class="@(ordersAdd.LeftColumnClass)">@Html.Raw(ordersAdd.Address.Caption)@Html.Raw(ordersAdd.Address.Required ? Language.Phrase("FieldRequiredIndicator") : "")</label>
         <div class="@(ordersAdd.RightColumnClass)"><div @Html.Raw(ordersAdd.Address.CellAttributes)>
 <span id="el_Orders_Address">
-<input type="@(ordersAdd.Address.InputTextType)" name="x_Address" id="x_Address" data-table="Orders" data-field="x_Address" value="@Html.Raw(ordersAdd.Address.EditValue)" size="30" maxlength="255" placeholder="@Html.Raw(HtmlEncode(ordersAdd.Address.PlaceHolder))" data-format-pattern="@(ordersAdd.Address.FormatPattern)"@Html.Raw(ordersAdd.Address.EditAttributes) aria-describedby="x_Address_help">
+<textarea data-table="Orders" data-field="x_Address" name="x_Address" id="x_Address" cols="35" rows="4" placeholder="@Html.Raw(HtmlEncode(ordersAdd.Address.PlaceHolder))"@Html.Raw(ordersAdd.Address.EditAttributes) aria-describedby="x_Address_help">@(ordersAdd.Address.EditValue)</textarea>
 @Html.Raw(ordersAdd.Address.GetCustomMessage)
 <div class="invalid-feedback">@Html.Raw(ordersAdd.Address.GetErrorMessage())</div>
 </span>
