@@ -1,0 +1,145 @@
+@{
+    // View
+    View = this;
+
+    // Check action result
+    if (ordersDelete.ActionResult is EmptyResult) { // Terminate page
+        return;
+    }
+
+    // Layout
+    if (!ordersDelete.UseLayout) // UseLayout = false // DN
+        Layout = "";
+    else
+        Layout = "_Layout";
+
+    // Local variables (Temp data)
+    #pragma warning disable 168
+    string? sqlWrk, filterWrk, whereWrk, curVal, dispVal;
+    List<Dictionary<string, object>>? rswrk;
+    string[]? arWrk;
+    List<object?>? listWrk;
+    object? guidWrk;
+    Func<string>? lookupFilter;
+    #pragma warning restore 168
+}
+<script>
+var currentTable = @Html.Raw(ConvertToJson(ordersDelete.ToClientVar()));
+ew.deepAssign(ew.vars, { tables: { Orders: currentTable } });
+var currentPageID = ew.PAGE_ID = "delete";
+var currentForm;
+var fOrdersdelete;
+loadjs.ready(["wrapper", "head"], function () {
+    let $ = jQuery;
+    let fields = currentTable.fields;
+
+    // Form object
+    let form = new ew.FormBuilder()
+        .setId("fOrdersdelete")
+        .setPageId("delete")
+        .build();
+    window[form.id] = form;
+    currentForm = form;
+    loadjs.done(form.id);
+});
+</script>
+<script>
+loadjs.ready("head", function() {
+    // Write your client script here, no need to add script tags.
+});
+</script>
+@ordersDelete.ShowPageHeader()
+@ordersDelete.ShowMessages()
+<form name="fOrdersdelete" id="fOrdersdelete" class="ew-form ew-delete-form" action="@AppPath(CurrentPageName())" method="post" novalidate autocomplete="off">
+@if (CurrentPage.CheckToken) {
+    <input type="hidden" name="@Config.TokenNameKey" value="@Config.TokenName"><!-- CSRF token name -->
+    @Html.AntiForgeryToken()
+}
+<input type="hidden" name="action" id="action" value="delete">
+@foreach (string key in ordersDelete.RecordKeys) {
+<input type="hidden" name="key_m[]" value="@key">
+}
+<div class="card ew-card ew-grid @(ordersDelete.TableGridClass)">
+<div class="card-body ew-grid-middle-panel @(ordersDelete.TableContainerClass)" style="@(ordersDelete.TableContainerStyle)">
+<table class="@(ordersDelete.TableClass)">
+    <thead>
+    <tr class="ew-table-header">
+@if (ordersDelete.SalesOrder.Visible) { // ordersDelete.SalesOrder.Visible (begin)
+        <th class="@Html.Raw(ordersDelete.SalesOrder.HeaderCellClass)"><span id="elh_Orders_SalesOrder" class="Orders_SalesOrder">@Html.Raw(ordersDelete.SalesOrder.Caption)</span></th>
+} @* ordersDelete.SalesOrder.Visible (end) *@
+@if (ordersDelete.OrderDate.Visible) { // ordersDelete.OrderDate.Visible (begin)
+        <th class="@Html.Raw(ordersDelete.OrderDate.HeaderCellClass)"><span id="elh_Orders_OrderDate" class="Orders_OrderDate">@Html.Raw(ordersDelete.OrderDate.Caption)</span></th>
+} @* ordersDelete.OrderDate.Visible (end) *@
+@if (ordersDelete.Customer.Visible) { // ordersDelete.Customer.Visible (begin)
+        <th class="@Html.Raw(ordersDelete.Customer.HeaderCellClass)"><span id="elh_Orders_Customer" class="Orders_Customer">@Html.Raw(ordersDelete.Customer.Caption)</span></th>
+} @* ordersDelete.Customer.Visible (end) *@
+@if (ordersDelete.Address.Visible) { // ordersDelete.Address.Visible (begin)
+        <th class="@Html.Raw(ordersDelete.Address.HeaderCellClass)"><span id="elh_Orders_Address" class="Orders_Address">@Html.Raw(ordersDelete.Address.Caption)</span></th>
+} @* ordersDelete.Address.Visible (end) *@
+    </tr>
+    </thead>
+    <tbody>
+@{ ordersDelete.RecordCount = 0; }
+@while (ordersDelete.Recordset != null && await ordersDelete.Recordset.ReadAsync()) { // DN
+    ordersDelete.RecordCount++;
+    ordersDelete.RowCount++;
+
+    // Set row properties
+    ordersDelete.ResetAttributes();
+    ordersDelete.RowType = RowType.View; // View
+
+    // Get the field contents
+    await ordersDelete.LoadRowValues(ordersDelete.Recordset);
+
+    // Render row
+    await ordersDelete.RenderRow();
+    <tr @Html.Raw(ordersDelete.RowAttributes)>
+@if (ordersDelete.SalesOrder.Visible) { // ordersDelete.SalesOrder.Visible (begin)
+        <td @Html.Raw(ordersDelete.SalesOrder.CellAttributes)>
+<span id="">
+<span @Html.Raw(ordersDelete.SalesOrder.ViewAttributes)>
+@Html.Raw(ordersDelete.SalesOrder.GetViewValue())</span>
+</span></td>
+} @* ordersDelete.SalesOrder.Visible (end) *@
+@if (ordersDelete.OrderDate.Visible) { // ordersDelete.OrderDate.Visible (begin)
+        <td @Html.Raw(ordersDelete.OrderDate.CellAttributes)>
+<span id="">
+<span @Html.Raw(ordersDelete.OrderDate.ViewAttributes)>
+@Html.Raw(ordersDelete.OrderDate.GetViewValue())</span>
+</span></td>
+} @* ordersDelete.OrderDate.Visible (end) *@
+@if (ordersDelete.Customer.Visible) { // ordersDelete.Customer.Visible (begin)
+        <td @Html.Raw(ordersDelete.Customer.CellAttributes)>
+<span id="">
+<span @Html.Raw(ordersDelete.Customer.ViewAttributes)>
+@Html.Raw(ordersDelete.Customer.GetViewValue())</span>
+</span></td>
+} @* ordersDelete.Customer.Visible (end) *@
+@if (ordersDelete.Address.Visible) { // ordersDelete.Address.Visible (begin)
+        <td @Html.Raw(ordersDelete.Address.CellAttributes)>
+<span id="">
+<span @Html.Raw(ordersDelete.Address.ViewAttributes)>
+@Html.Raw(ordersDelete.Address.GetViewValue())</span>
+</span></td>
+} @* ordersDelete.Address.Visible (end) *@
+    </tr>
+}
+@{ ordersDelete.CloseRecordset(); }
+</tbody>
+</table>
+</div>
+</div>
+<div class="ew-buttons ew-desktop-buttons">
+<button class="btn btn-primary ew-btn" name="btn-action" id="btn-action" type="submit">@Html.Raw(Language.Phrase("DeleteBtn"))</button>
+<button class="btn btn-default ew-btn" name="btn-cancel" id="btn-cancel" type="button" data-href="@AppPath(ordersDelete.ReturnUrl)">@Html.Raw(Language.Phrase("CancelBtn"))</button>
+</div>
+</form>
+@ordersDelete.ShowPageFooter()
+@Html.Raw(GetDebugMessage())
+@ElapsedTime()
+<script>
+loadjs.ready("load", function() {
+    // Write your table-specific startup script here
+    // document.write("page loaded");
+});
+</script>

@@ -1,0 +1,51 @@
+@{
+    orders.TableClass = "table table-striped table-bordered table-hover table-sm ew-table ew-master-table"; // DN
+}
+@if (orders.Visible) { // orders.Visible (begin)
+<div class="ew-master-div">
+<table id="tbl_Ordersmaster" class="table ew-view-table ew-master-table ew-vertical">
+    <tbody>
+        @if (orders.SalesOrder.Visible) { // orders.SalesOrder.Visible (begin)
+        <tr id="r_SalesOrder" @Html.Raw(orders.SalesOrder.RowAttributes)>
+            <td class="@(orders.TableLeftColumnClass)">@Html.Raw(orders.SalesOrder.Caption)</td>
+            <td @Html.Raw(orders.SalesOrder.CellAttributes)>
+<span id="el_Orders_SalesOrder">
+<span @Html.Raw(orders.SalesOrder.ViewAttributes)>
+@Html.Raw(orders.SalesOrder.GetViewValue())</span>
+</span></td>
+        </tr>
+        } @* orders.SalesOrder.Visible (end) *@
+        @if (orders.OrderDate.Visible) { // orders.OrderDate.Visible (begin)
+        <tr id="r_OrderDate" @Html.Raw(orders.OrderDate.RowAttributes)>
+            <td class="@(orders.TableLeftColumnClass)">@Html.Raw(orders.OrderDate.Caption)</td>
+            <td @Html.Raw(orders.OrderDate.CellAttributes)>
+<span id="el_Orders_OrderDate">
+<span @Html.Raw(orders.OrderDate.ViewAttributes)>
+@Html.Raw(orders.OrderDate.GetViewValue())</span>
+</span></td>
+        </tr>
+        } @* orders.OrderDate.Visible (end) *@
+        @if (orders.Customer.Visible) { // orders.Customer.Visible (begin)
+        <tr id="r_Customer" @Html.Raw(orders.Customer.RowAttributes)>
+            <td class="@(orders.TableLeftColumnClass)">@Html.Raw(orders.Customer.Caption)</td>
+            <td @Html.Raw(orders.Customer.CellAttributes)>
+<span id="el_Orders_Customer">
+<span @Html.Raw(orders.Customer.ViewAttributes)>
+@Html.Raw(orders.Customer.GetViewValue())</span>
+</span></td>
+        </tr>
+        } @* orders.Customer.Visible (end) *@
+        @if (orders.Address.Visible) { // orders.Address.Visible (begin)
+        <tr id="r_Address" @Html.Raw(orders.Address.RowAttributes)>
+            <td class="@(orders.TableLeftColumnClass)">@Html.Raw(orders.Address.Caption)</td>
+            <td @Html.Raw(orders.Address.CellAttributes)>
+<span id="el_Orders_Address">
+<span @Html.Raw(orders.Address.ViewAttributes)>
+@Html.Raw(orders.Address.GetViewValue())</span>
+</span></td>
+        </tr>
+        } @* orders.Address.Visible (end) *@
+    </tbody>
+</table>
+</div>
+} @* orders.Visible (end) *@

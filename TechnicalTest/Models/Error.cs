@@ -140,7 +140,7 @@ public partial class project1 {
         }
 
         // Page name
-        public string PageName => "OrderDelete";
+        public string PageName => "OrdersDelete";
 
         // Page URL
         public string PageUrl

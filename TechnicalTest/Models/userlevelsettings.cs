@@ -18,15 +18,15 @@ public partial class project1 {
         // User level priv info
         public static List<UserLevelPermission> UserLevelPermissions = new ()
         {
-            new () { Table = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}Item", Id = -2, Permission = 0 },
-            new () { Table = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}Order", Id = -2, Permission = 0 }
+            new () { Table = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}Items", Id = -2, Permission = 0 },
+            new () { Table = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}Orders", Id = -2, Permission = 0 }
         };
 
         // User level table info // DN
         public static List<UserLevelTablePermission> UserLevelTablePermissions = new ()
         {
-            new () { TableName = "Item", TableVar = "Item", Caption = "Item", Allowed = true, ProjectId = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}", Url = "ItemList" },
-            new () { TableName = "Order", TableVar = "Order", Caption = "Sales Order", Allowed = true, ProjectId = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}", Url = "OrderList" }
+            new () { TableName = "Items", TableVar = "Items", Caption = "Items", Allowed = true, ProjectId = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}", Url = "ItemsList" },
+            new () { TableName = "Orders", TableVar = "Orders", Caption = "Sales Order", Allowed = true, ProjectId = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}", Url = "OrdersList" }
         };
     }
 } // End Partial class

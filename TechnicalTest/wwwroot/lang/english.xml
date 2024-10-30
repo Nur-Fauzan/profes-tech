@@ -1152,13 +1152,13 @@
   <project>
     <phrase id="footertext" value="&amp;copy;2023 e.World Technology Limited. All rights reserved." />
     <menu id="1">
-      <phrase id="menutext" value="Item" />
+      <phrase id="menutext" value="Items" />
     </menu>
     <menu id="2">
       <phrase id="menutext" value="Sales Order" />
     </menu>
-    <table id="item">
-      <phrase id="tblcaption" value="Item" />
+    <table id="items">
+      <phrase id="tblcaption" value="Items" />
       <field id="id">
         <phrase id="fldcaption" value="ID" />
       </field>
@@ -1175,7 +1175,7 @@
         <phrase id="fldcaption" value="Order ID" />
       </field>
     </table>
-    <table id="order">
+    <table id="orders">
       <phrase id="tblcaption" value="Sales Order" />
       <field id="id">
         <phrase id="fldcaption" value="ID" />

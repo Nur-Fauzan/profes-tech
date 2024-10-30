@@ -1,0 +1,624 @@
+@{
+    // View
+    View = this;
+
+    // Check action result
+    if (itemsList.ActionResult is EmptyResult) { // Terminate page
+        return;
+    }
+
+    // Layout
+    if (!itemsList.UseLayout) // UseLayout = false // DN
+        Layout = "";
+    else
+        Layout = "_Layout";
+
+    // Local variables (Temp data)
+    #pragma warning disable 168
+    string? sqlWrk, filterWrk, whereWrk, curVal, dispVal;
+    List<Dictionary<string, object>>? rswrk;
+    string[]? arWrk;
+    List<object?>? listWrk;
+    object? guidWrk;
+    Func<string>? lookupFilter;
+    #pragma warning restore 168
+}
+@if (!itemsList.IsExport()) {
+<script>
+var currentTable = @Html.Raw(ConvertToJson(itemsList.ToClientVar()));
+ew.deepAssign(ew.vars, { tables: { Items: currentTable } });
+var currentPageID = ew.PAGE_ID = "list";
+var currentForm;
+var @(itemsList.FormName);
+loadjs.ready(["wrapper", "head"], function () {
+    let $ = jQuery;
+    let fields = currentTable.fields;
+
+    // Form object
+    let form = new ew.FormBuilder()
+        .setId("@(itemsList.FormName)")
+        .setPageId("list")
+        .setSubmitWithFetch(@(itemsList.UseAjaxActions ? "true" : "false"))
+        .setFormKeyCountName("@(itemsList.FormKeyCountName)")
+
+        // Add fields
+        .setFields([
+
+            ["ItemName", [fields.ItemName.visible && fields.ItemName.required ? ew.Validators.required(fields.ItemName.caption) : null], fields.ItemName.isInvalid],
+            ["Qty", [fields.Qty.visible && fields.Qty.required ? ew.Validators.required(fields.Qty.caption) : null, ew.Validators.integer], fields.Qty.isInvalid],
+            ["Price", [fields.Price.visible && fields.Price.required ? ew.Validators.required(fields.Price.caption) : null], fields.Price.isInvalid],
+            ["OrderID", [fields.OrderID.visible && fields.OrderID.required ? ew.Validators.required(fields.OrderID.caption) : null, ew.Validators.integer], fields.OrderID.isInvalid]
+        ])
+
+        // Form_CustomValidate
+        .setCustomValidate(
+            function(fobj) { // DO NOT CHANGE THIS LINE!
+                    // Your custom validation code here, return false if invalid.
+                    return true;
+                }
+        )
+
+        // Use JavaScript validation or not
+        .setValidateRequired(ew.CLIENT_VALIDATE)
+
+        // Dynamic selection lists
+        .setLists({
+            "ItemName": @Html.Raw(itemsList.ItemName.ToClientList(itemsList)),
+            "Qty": @Html.Raw(itemsList.Qty.ToClientList(itemsList)),
+            "Price": @Html.Raw(itemsList.Price.ToClientList(itemsList)),
+            "OrderID": @Html.Raw(itemsList.OrderID.ToClientList(itemsList)),
+        })
+        .build();
+    window[form.id] = form;
+    currentForm = form;
+    loadjs.done(form.id);
+});
+</script>
+<script>
+loadjs.ready("head", function() {
+    // Write your client script here, no need to add script tags.
+});
+</script>
+}
+@if (!itemsList.IsExport()) {
+<div class="btn-toolbar ew-toolbar">
+@if (itemsList.TotalRecords > 0 && itemsList.ExportOptions.Visible) {
+    itemsList.ExportOptions.Render("body");
+}
+@if (itemsList.ImportOptions.Visible) {
+    itemsList.ImportOptions.Render("body");
+}
+@if (itemsList.SearchOptions.Visible) {
+    itemsList.SearchOptions.Render("body");
+}
+@if (itemsList.FilterOptions.Visible) {
+    itemsList.FilterOptions.Render("body");
+}
+</div>
+}
+@if (!itemsList.IsExport() || Config.ExportMasterRecord && itemsList.IsExport("print")) {
+if (!Empty(itemsList.DbMasterFilter) && itemsList.CurrentMasterTable == "Orders") {
+    if (itemsList.MasterRecordExists) {
+        @await Html.PartialAsync("OrdersMaster.cshtml")
+    }
+}
+}
+@if (itemsList.ShowCurrentFilter) {
+    itemsList.ShowFilterList();
+}
+@if (!itemsList.IsModal) {
+<form name="fItemssrch" id="fItemssrch" class="ew-form ew-ext-search-form" action="@AppPath(CurrentPageName())" novalidate autocomplete="off">
+<div id="fItemssrch_search_panel" class="mb-2 mb-sm-0 @(itemsList.SearchPanelClass)"><!-- .ew-search-panel -->
+<script>
+var currentTable = @Html.Raw(ConvertToJson(itemsList.ToClientVar()));
+ew.deepAssign(ew.vars, { tables: { Items: currentTable } });
+var currentForm;
+var fItemssrch, currentSearchForm, currentAdvancedSearchForm;
+loadjs.ready(["wrapper", "head"], function () {
+    let $ = jQuery,
+        fields = currentTable.fields;
+
+    // Form object for search
+    let form = new ew.FormBuilder()
+        .setId("fItemssrch")
+        .setPageId("list")
+@if (itemsList.UseAjaxActions) {
+        <text>.setSubmitWithFetch(true)</text>
+}
+
+        // Add fields
+        .setFields([
+
+            ["ItemName", [], fields.ItemName.isInvalid],
+            ["Qty", [], fields.Qty.isInvalid],
+            ["Price", [], fields.Price.isInvalid],
+            ["OrderID", [], fields.OrderID.isInvalid]
+        ])
+        // Validate form
+        .setValidate(
+            async function () {
+                if (!this.validateRequired)
+                    return true; // Ignore validation
+                let fobj = this.getForm();
+
+                // Validate fields
+                if (!this.validateFields())
+                    return false;
+
+                // Call Form_CustomValidate event
+                if (!(await this.customValidate?.(fobj) ?? true)) {
+                    this.focus();
+                    return false;
+                }
+                return true;
+            }
+        )
+
+        // Form_CustomValidate
+        .setCustomValidate(
+            function(fobj) { // DO NOT CHANGE THIS LINE!
+                    // Your custom validation code here, return false if invalid.
+                    return true;
+                }
+        )
+
+        // Use JavaScript validation or not
+        .setValidateRequired(ew.CLIENT_VALIDATE)
+
+        // Dynamic selection lists
+        .setLists({
+            "ItemName": @Html.Raw(itemsList.ItemName.ToClientList(itemsList)),
+            "Qty": @Html.Raw(itemsList.Qty.ToClientList(itemsList)),
+            "Price": @Html.Raw(itemsList.Price.ToClientList(itemsList)),
+            "OrderID": @Html.Raw(itemsList.OrderID.ToClientList(itemsList)),
+        })
+
+        // Filters
+        .setFilterList(@Html.Raw(await itemsList.GetFilterList()))
+        .build();
+    window[form.id] = form;
+    currentSearchForm = form;
+    loadjs.done(form.id);
+});
+</script>
+<input type="hidden" name="cmd" value="search">
+@if (!itemsList.IsExport() && Empty(itemsList.CurrentAction) && itemsList.HasSearchFields()) { @* Show search form (begin) *@
+<div class="ew-extended-search container-fluid ps-2">
+<div class="row mb-0@(itemsList.SearchFieldsPerRow > 0 ? " row-cols-sm-" + itemsList.SearchFieldsPerRow : "")">
+@{
+    // Render search row
+    itemsList.RowType = RowType.Search;
+    itemsList.ResetAttributes();
+    await itemsList.RenderRow();
+}
+@if (itemsList.ItemName.Visible) { // itemsList.ItemName.Visible (begin)
+    if (!itemsList.ItemName.UseFilter) {
+        itemsList.SearchColumnCount++;
+    }
+    <div id="xs_ItemName" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(itemsList.ItemName.UseFilter ? " ew-filter-field" : "")">
+        <select
+            id="x_ItemName"
+            name="x_ItemName[]"
+            class="form-control ew-select@(itemsList.ItemName.IsInvalidClass)"
+            data-select2-id="fItemssrch_x_ItemName"
+            data-table="Items"
+            data-field="x_ItemName"
+            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(itemsList.ItemName.Caption)))"
+            data-filter="true"
+            multiple
+            size="1"
+            data-value-separator="@(itemsList.ItemName.DisplayValueSeparatorAttribute)"
+            data-placeholder="@(HtmlEncode(itemsList.ItemName.PlaceHolder))"
+            data-ew-action="update-options"
+            @Html.Raw(itemsList.ItemName.EditAttributes)>
+            @(itemsList.ItemName.SelectOptionListHtml("x_ItemName", true))
+        </select>
+        <div class="invalid-feedback">@Html.Raw(itemsList.ItemName.GetErrorMessage(false))</div>
+        <script>
+        loadjs.ready("fItemssrch", function() {
+            var options = {
+                name: "x_ItemName",
+                selectId: "fItemssrch_x_ItemName",
+                ajax: { id: "x_ItemName", form: "fItemssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
+            };
+            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Items.fields.ItemName.filterOptions);
+            ew.createFilter(options);
+        });
+        </script>
+    </div><!-- /.col-sm-auto -->
+} @* itemsList.ItemName.Visible (end) *@
+@if (itemsList.Qty.Visible) { // itemsList.Qty.Visible (begin)
+    if (!itemsList.Qty.UseFilter) {
+        itemsList.SearchColumnCount++;
+    }
+    <div id="xs_Qty" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(itemsList.Qty.UseFilter ? " ew-filter-field" : "")">
+        <select
+            id="x_Qty"
+            name="x_Qty[]"
+            class="form-control ew-select@(itemsList.Qty.IsInvalidClass)"
+            data-select2-id="fItemssrch_x_Qty"
+            data-table="Items"
+            data-field="x_Qty"
+            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(itemsList.Qty.Caption)))"
+            data-filter="true"
+            multiple
+            size="1"
+            data-value-separator="@(itemsList.Qty.DisplayValueSeparatorAttribute)"
+            data-placeholder="@(HtmlEncode(itemsList.Qty.PlaceHolder))"
+            data-ew-action="update-options"
+            @Html.Raw(itemsList.Qty.EditAttributes)>
+            @(itemsList.Qty.SelectOptionListHtml("x_Qty", true))
+        </select>
+        <div class="invalid-feedback">@Html.Raw(itemsList.Qty.GetErrorMessage(false))</div>
+        <script>
+        loadjs.ready("fItemssrch", function() {
+            var options = {
+                name: "x_Qty",
+                selectId: "fItemssrch_x_Qty",
+                ajax: { id: "x_Qty", form: "fItemssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
+            };
+            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Items.fields.Qty.filterOptions);
+            ew.createFilter(options);
+        });
+        </script>
+    </div><!-- /.col-sm-auto -->
+} @* itemsList.Qty.Visible (end) *@
+@if (itemsList.Price.Visible) { // itemsList.Price.Visible (begin)
+    if (!itemsList.Price.UseFilter) {
+        itemsList.SearchColumnCount++;
+    }
+    <div id="xs_Price" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(itemsList.Price.UseFilter ? " ew-filter-field" : "")">
+        <select
+            id="x_Price"
+            name="x_Price[]"
+            class="form-control ew-select@(itemsList.Price.IsInvalidClass)"
+            data-select2-id="fItemssrch_x_Price"
+            data-table="Items"
+            data-field="x_Price"
+            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(itemsList.Price.Caption)))"
+            data-filter="true"
+            multiple
+            size="1"
+            data-value-separator="@(itemsList.Price.DisplayValueSeparatorAttribute)"
+            data-placeholder="@(HtmlEncode(itemsList.Price.PlaceHolder))"
+            data-ew-action="update-options"
+            @Html.Raw(itemsList.Price.EditAttributes)>
+            @(itemsList.Price.SelectOptionListHtml("x_Price", true))
+        </select>
+        <div class="invalid-feedback">@Html.Raw(itemsList.Price.GetErrorMessage(false))</div>
+        <script>
+        loadjs.ready("fItemssrch", function() {
+            var options = {
+                name: "x_Price",
+                selectId: "fItemssrch_x_Price",
+                ajax: { id: "x_Price", form: "fItemssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
+            };
+            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Items.fields.Price.filterOptions);
+            ew.createFilter(options);
+        });
+        </script>
+    </div><!-- /.col-sm-auto -->
+} @* itemsList.Price.Visible (end) *@
+@if (itemsList.OrderID.Visible) { // itemsList.OrderID.Visible (begin)
+    if (!itemsList.OrderID.UseFilter) {
+        itemsList.SearchColumnCount++;
+    }
+    <div id="xs_OrderID" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(itemsList.OrderID.UseFilter ? " ew-filter-field" : "")">
+        <select
+            id="x_OrderID"
+            name="x_OrderID[]"
+            class="form-control ew-select@(itemsList.OrderID.IsInvalidClass)"
+            data-select2-id="fItemssrch_x_OrderID"
+            data-table="Items"
+            data-field="x_OrderID"
+            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(itemsList.OrderID.Caption)))"
+            data-filter="true"
+            multiple
+            size="1"
+            data-value-separator="@(itemsList.OrderID.DisplayValueSeparatorAttribute)"
+            data-placeholder="@(HtmlEncode(itemsList.OrderID.PlaceHolder))"
+            data-ew-action="update-options"
+            @Html.Raw(itemsList.OrderID.EditAttributes)>
+            @(itemsList.OrderID.SelectOptionListHtml("x_OrderID", true))
+        </select>
+        <div class="invalid-feedback">@Html.Raw(itemsList.OrderID.GetErrorMessage(false))</div>
+        <script>
+        loadjs.ready("fItemssrch", function() {
+            var options = {
+                name: "x_OrderID",
+                selectId: "fItemssrch_x_OrderID",
+                ajax: { id: "x_OrderID", form: "fItemssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
+            };
+            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Items.fields.OrderID.filterOptions);
+            ew.createFilter(options);
+        });
+        </script>
+    </div><!-- /.col-sm-auto -->
+} @* itemsList.OrderID.Visible (end) *@
+</div><!-- /.row -->
+<div class="row mb-0">
+    <div class="col-sm-auto px-0 pe-sm-2">
+        <div class="ew-basic-search input-group">
+            <input type="search" name="@(Config.TableBasicSearch)" id="@(Config.TableBasicSearch)" class="form-control ew-basic-search-keyword" value="@Html.Raw(HtmlEncode(itemsList.BasicSearch.SessionKeyword))" placeholder="@(HtmlEncode(Language.Phrase("Search")))" aria-label="@(HtmlEncode(Language.Phrase("Search")))">
+            <input type="hidden" name="@(Config.TableBasicSearchType)" id="@(Config.TableBasicSearchType)" class="ew-basic-search-type" value="@(HtmlEncode(itemsList.BasicSearch.SessionType))">
+            <button type="button" data-bs-toggle="dropdown" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" aria-haspopup="true" aria-expanded="false">
+                <span id="searchtype">@Html.Raw(itemsList.BasicSearch.TypeNameShort)</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end">
+                <button type="button" class="dropdown-item@(itemsList.BasicSearch.SessionType == "" ? " active" : "")" form="fItemssrch" data-ew-action="search-type">@Html.Raw(Language.Phrase("QuickSearchAuto"))</button>
+                <button type="button" class="dropdown-item@(itemsList.BasicSearch.SessionType == "=" ? " active" : "")" form="fItemssrch" data-ew-action="search-type" data-search-type="=">@Html.Raw(Language.Phrase("QuickSearchExact"))</button>
+                <button type="button" class="dropdown-item@(itemsList.BasicSearch.SessionType == "AND" ? " active" : "")" form="fItemssrch" data-ew-action="search-type" data-search-type="AND">@Html.Raw(Language.Phrase("QuickSearchAll"))</button>
+                <button type="button" class="dropdown-item@(itemsList.BasicSearch.SessionType == "OR" ? " active" : "")" form="fItemssrch" data-ew-action="search-type" data-search-type="OR">@Html.Raw(Language.Phrase("QuickSearchAny"))</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-auto mb-3">
+        <button class="btn btn-primary" name="btn-submit" id="btn-submit" type="submit">@Html.Raw(Language.Phrase("SearchBtn"))</button>
+    </div>
+</div>
+</div><!-- /.ew-extended-search -->
+} @* Show search form (end) *@
+</div><!-- /.ew-search-panel -->
+</form>
+}
+@itemsList.ShowPageHeader()
+@itemsList.ShowMessages()
+<main class="list @(itemsList.TotalRecords == 0 && !itemsList.IsAdd ? " ew-no-record" : "")">
+<div id="ew-list">
+@if (itemsList.TotalRecords > 0 || !Empty(itemsList.CurrentAction)) {
+<div class="card ew-card ew-grid@(itemsList.IsAddOrEdit ? " ew-grid-add-edit" : "") @(itemsList.TableGridClass)">
+<form name="@(itemsList.FormName)" id="@(itemsList.FormName)" class="ew-form ew-list-form" action="@AppPath(itemsList.PageName)" method="post" novalidate autocomplete="off">
+@if (CurrentPage.CheckToken) {
+    <input type="hidden" name="@Config.TokenNameKey" value="@Config.TokenName"><!-- CSRF token name -->
+    @Html.AntiForgeryToken()
+}
+@if (itemsList.IsModal) {
+<input type="hidden" name="modal" value="1">
+}
+@if (itemsList.CurrentMasterTable == "Orders" && !Empty(itemsList.CurrentAction)) {
+<input type="hidden" name="@(Config.TableShowMaster)" value="Orders">
+<input type="hidden" name="fk_ID" value="@(HtmlEncode(itemsList.OrderID.SessionValue))">
+}
+<div id="gmp_Items" class="card-body ew-grid-middle-panel @(itemsList.TableContainerClass)" style="@(itemsList.TableContainerStyle)">
+@if (itemsList.TotalRecords > 0 || itemsList.IsAdd || itemsList.IsCopy || itemsList.IsGridEdit || itemsList.IsMultiEdit) {
+<table id="tbl_Itemslist" class="@(itemsList.TableClass)"><!-- .ew-table -->
+<thead>
+    <tr class="ew-table-header">
+@{
+    // Header row
+    itemsList.RowType = RowType.Header;
+
+    // Render list options
+    await itemsList.RenderListOptions();
+}
+@* Render list options (header, left) *@
+@itemsList.ListOptions.RenderHeader("left")
+@if (itemsList.ItemName.Visible) { // itemsList.ItemName.Visible (begin)
+        <th data-name="ItemName" class="@(itemsList.ItemName.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_ItemName" class="Items_ItemName">@Html.Raw(itemsList.RenderFieldHeader(itemsList.ItemName))</div></th>
+} @* itemsList.ItemName.Visible (end) *@
+@if (itemsList.Qty.Visible) { // itemsList.Qty.Visible (begin)
+        <th data-name="Qty" class="@(itemsList.Qty.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_Qty" class="Items_Qty">@Html.Raw(itemsList.RenderFieldHeader(itemsList.Qty))</div></th>
+} @* itemsList.Qty.Visible (end) *@
+@if (itemsList.Price.Visible) { // itemsList.Price.Visible (begin)
+        <th data-name="Price" class="@(itemsList.Price.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_Price" class="Items_Price">@Html.Raw(itemsList.RenderFieldHeader(itemsList.Price))</div></th>
+} @* itemsList.Price.Visible (end) *@
+@if (itemsList.OrderID.Visible) { // itemsList.OrderID.Visible (begin)
+        <th data-name="OrderID" class="@(itemsList.OrderID.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_OrderID" class="Items_OrderID">@Html.Raw(itemsList.RenderFieldHeader(itemsList.OrderID))</div></th>
+} @* itemsList.OrderID.Visible (end) *@
+@* Render list options (header, right) *@
+@itemsList.ListOptions.RenderHeader("right")
+    </tr>
+</thead>
+<tbody data-page="@(itemsList.PageNumber)">
+@{
+    await itemsList.SetupGrid();
+    bool eof = itemsList.Recordset == null; // DN
+}
+@while (itemsList.RecordCount < itemsList.StopRecord || SameString(itemsList.RowIndex, "$rowindex$")) { // Begin While
+    if (!eof && !SameString(itemsList.RowIndex, "$rowindex$") &&
+        (!itemsList.IsGridAdd || itemsList.CurrentMode == "copy") &&
+        (!((itemsList.IsCopy || itemsList.IsAdd) && itemsList.RowIndex is int rowIndex && rowIndex == 0))) // DN
+        eof = !await itemsList.Recordset.ReadAsync();
+    itemsList.RecordCount++;
+    if (itemsList.RecordCount >= itemsList.StartRecord) {
+        await itemsList.SetupRow();
+    <tr @Html.Raw(itemsList.RowAttributes)>
+    @* Render list options (body, left) *@
+    @itemsList.ListOptions.RenderBody("left", itemsList.RowCount)
+    @if (itemsList.ItemName.Visible) { // itemsList.ItemName.Visible (begin)
+        <td data-name="ItemName" @Html.Raw(itemsList.ItemName.CellAttributes)>
+@if (itemsList.RowType == RowType.Add) { // Add (begin)
+    @* ItemName (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_ItemName" class="el_Items_ItemName">
+    <input type="@(itemsList.ItemName.InputTextType)" name="x@(itemsList.RowIndex)_ItemName" id="x@(itemsList.RowIndex)_ItemName" data-table="Items" data-field="x_ItemName" value="@Html.Raw(itemsList.ItemName.EditValue)" size="30" maxlength="50" placeholder="@Html.Raw(HtmlEncode(itemsList.ItemName.PlaceHolder))" data-format-pattern="@(itemsList.ItemName.FormatPattern)"@Html.Raw(itemsList.ItemName.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsList.ItemName.GetErrorMessage())</div>
+    </span>
+    <input type="hidden" data-table="Items" data-field="x_ItemName" data-hidden="1" data-old name="o@(itemsList.RowIndex)_ItemName" id="o@(itemsList.RowIndex)_ItemName" value="@Html.Raw(HtmlEncode(itemsList.ItemName.OldValue))">
+    @* ItemName (end) *@
+} @* Add (end) *@
+@if (itemsList.RowType == RowType.Edit) { // Edit (begin)
+    @* ItemName (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_ItemName" class="el_Items_ItemName">
+    <input type="@(itemsList.ItemName.InputTextType)" name="x@(itemsList.RowIndex)_ItemName" id="x@(itemsList.RowIndex)_ItemName" data-table="Items" data-field="x_ItemName" value="@Html.Raw(itemsList.ItemName.EditValue)" size="30" maxlength="50" placeholder="@Html.Raw(HtmlEncode(itemsList.ItemName.PlaceHolder))" data-format-pattern="@(itemsList.ItemName.FormatPattern)"@Html.Raw(itemsList.ItemName.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsList.ItemName.GetErrorMessage())</div>
+    </span>
+    @* ItemName (end) *@
+} @* Edit (end) *@
+@if (itemsList.RowType == RowType.View) { // View (begin)
+    @* ItemName (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_ItemName" class="el_Items_ItemName">
+    <span @Html.Raw(itemsList.ItemName.ViewAttributes)>
+    @Html.Raw(itemsList.ItemName.GetViewValue())</span>
+    </span>
+    @* ItemName (end) *@
+} @* View (end) *@
+</td>
+    } @* itemsList.ItemName.Visible (end) *@
+    @if (itemsList.Qty.Visible) { // itemsList.Qty.Visible (begin)
+        <td data-name="Qty" @Html.Raw(itemsList.Qty.CellAttributes)>
+@if (itemsList.RowType == RowType.Add) { // Add (begin)
+    @* Qty (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_Qty" class="el_Items_Qty">
+    <input type="@(itemsList.Qty.InputTextType)" name="x@(itemsList.RowIndex)_Qty" id="x@(itemsList.RowIndex)_Qty" data-table="Items" data-field="x_Qty" value="@Html.Raw(itemsList.Qty.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsList.Qty.PlaceHolder))" data-format-pattern="@(itemsList.Qty.FormatPattern)"@Html.Raw(itemsList.Qty.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsList.Qty.GetErrorMessage())</div>
+    </span>
+    <input type="hidden" data-table="Items" data-field="x_Qty" data-hidden="1" data-old name="o@(itemsList.RowIndex)_Qty" id="o@(itemsList.RowIndex)_Qty" value="@Html.Raw(HtmlEncode(itemsList.Qty.OldValue))">
+    @* Qty (end) *@
+} @* Add (end) *@
+@if (itemsList.RowType == RowType.Edit) { // Edit (begin)
+    @* Qty (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_Qty" class="el_Items_Qty">
+    <input type="@(itemsList.Qty.InputTextType)" name="x@(itemsList.RowIndex)_Qty" id="x@(itemsList.RowIndex)_Qty" data-table="Items" data-field="x_Qty" value="@Html.Raw(itemsList.Qty.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsList.Qty.PlaceHolder))" data-format-pattern="@(itemsList.Qty.FormatPattern)"@Html.Raw(itemsList.Qty.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsList.Qty.GetErrorMessage())</div>
+    </span>
+    @* Qty (end) *@
+} @* Edit (end) *@
+@if (itemsList.RowType == RowType.View) { // View (begin)
+    @* Qty (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_Qty" class="el_Items_Qty">
+    <span @Html.Raw(itemsList.Qty.ViewAttributes)>
+    @Html.Raw(itemsList.Qty.GetViewValue())</span>
+    </span>
+    @* Qty (end) *@
+} @* View (end) *@
+</td>
+    } @* itemsList.Qty.Visible (end) *@
+    @if (itemsList.Price.Visible) { // itemsList.Price.Visible (begin)
+        <td data-name="Price" @Html.Raw(itemsList.Price.CellAttributes)>
+@if (itemsList.RowType == RowType.Add) { // Add (begin)
+    @* Price (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_Price" class="el_Items_Price">
+    <input type="@(itemsList.Price.InputTextType)" name="x@(itemsList.RowIndex)_Price" id="x@(itemsList.RowIndex)_Price" data-table="Items" data-field="x_Price" value="@Html.Raw(itemsList.Price.EditValue)" size="30" maxlength="50" placeholder="@Html.Raw(HtmlEncode(itemsList.Price.PlaceHolder))" data-format-pattern="@(itemsList.Price.FormatPattern)"@Html.Raw(itemsList.Price.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsList.Price.GetErrorMessage())</div>
+    </span>
+    <input type="hidden" data-table="Items" data-field="x_Price" data-hidden="1" data-old name="o@(itemsList.RowIndex)_Price" id="o@(itemsList.RowIndex)_Price" value="@Html.Raw(HtmlEncode(itemsList.Price.OldValue))">
+    @* Price (end) *@
+} @* Add (end) *@
+@if (itemsList.RowType == RowType.Edit) { // Edit (begin)
+    @* Price (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_Price" class="el_Items_Price">
+    <input type="@(itemsList.Price.InputTextType)" name="x@(itemsList.RowIndex)_Price" id="x@(itemsList.RowIndex)_Price" data-table="Items" data-field="x_Price" value="@Html.Raw(itemsList.Price.EditValue)" size="30" maxlength="50" placeholder="@Html.Raw(HtmlEncode(itemsList.Price.PlaceHolder))" data-format-pattern="@(itemsList.Price.FormatPattern)"@Html.Raw(itemsList.Price.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsList.Price.GetErrorMessage())</div>
+    </span>
+    @* Price (end) *@
+} @* Edit (end) *@
+@if (itemsList.RowType == RowType.View) { // View (begin)
+    @* Price (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_Price" class="el_Items_Price">
+    <span @Html.Raw(itemsList.Price.ViewAttributes)>
+    @Html.Raw(itemsList.Price.GetViewValue())</span>
+    </span>
+    @* Price (end) *@
+} @* View (end) *@
+</td>
+    } @* itemsList.Price.Visible (end) *@
+    @if (itemsList.OrderID.Visible) { // itemsList.OrderID.Visible (begin)
+        <td data-name="OrderID" @Html.Raw(itemsList.OrderID.CellAttributes)>
+@if (itemsList.RowType == RowType.Add) { // Add (begin)
+    @* OrderID (begin) *@
+    @if (!Empty(itemsList.OrderID.SessionValue)) {
+    <span @Html.Raw(itemsList.OrderID.ViewAttributes)>
+    <input type="text" readonly class="form-control-plaintext" value="@Html.Raw(RemoveHtml(ConvertToString(itemsList.OrderID.ViewValue)))"></span>
+    <input type="hidden" id="x@(itemsList.RowIndex)_OrderID" name="x@(itemsList.RowIndex)_OrderID" value="@(HtmlEncode(itemsList.OrderID.CurrentValue))" data-hidden="1">
+    } else {
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_OrderID" class="el_Items_OrderID">
+    <input type="@(itemsList.OrderID.InputTextType)" name="x@(itemsList.RowIndex)_OrderID" id="x@(itemsList.RowIndex)_OrderID" data-table="Items" data-field="x_OrderID" value="@Html.Raw(itemsList.OrderID.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsList.OrderID.PlaceHolder))" data-format-pattern="@(itemsList.OrderID.FormatPattern)"@Html.Raw(itemsList.OrderID.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsList.OrderID.GetErrorMessage())</div>
+    </span>
+    }
+    <input type="hidden" data-table="Items" data-field="x_OrderID" data-hidden="1" data-old name="o@(itemsList.RowIndex)_OrderID" id="o@(itemsList.RowIndex)_OrderID" value="@Html.Raw(HtmlEncode(itemsList.OrderID.OldValue))">
+    @* OrderID (end) *@
+} @* Add (end) *@
+@if (itemsList.RowType == RowType.Edit) { // Edit (begin)
+    @* OrderID (begin) *@
+    @if (!Empty(itemsList.OrderID.SessionValue)) {
+    <span @Html.Raw(itemsList.OrderID.ViewAttributes)>
+    <input type="text" readonly class="form-control-plaintext" value="@Html.Raw(RemoveHtml(ConvertToString(itemsList.OrderID.ViewValue)))"></span>
+    <input type="hidden" id="x@(itemsList.RowIndex)_OrderID" name="x@(itemsList.RowIndex)_OrderID" value="@(HtmlEncode(itemsList.OrderID.CurrentValue))" data-hidden="1">
+    } else {
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_OrderID" class="el_Items_OrderID">
+    <input type="@(itemsList.OrderID.InputTextType)" name="x@(itemsList.RowIndex)_OrderID" id="x@(itemsList.RowIndex)_OrderID" data-table="Items" data-field="x_OrderID" value="@Html.Raw(itemsList.OrderID.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsList.OrderID.PlaceHolder))" data-format-pattern="@(itemsList.OrderID.FormatPattern)"@Html.Raw(itemsList.OrderID.EditAttributes)>
+    <div class="invalid-feedback">@Html.Raw(itemsList.OrderID.GetErrorMessage())</div>
+    </span>
+    }
+    @* OrderID (end) *@
+} @* Edit (end) *@
+@if (itemsList.RowType == RowType.View) { // View (begin)
+    @* OrderID (begin) *@
+    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_OrderID" class="el_Items_OrderID">
+    <span @Html.Raw(itemsList.OrderID.ViewAttributes)>
+    @Html.Raw(itemsList.OrderID.GetViewValue())</span>
+    </span>
+    @* OrderID (end) *@
+} @* View (end) *@
+</td>
+    } @* itemsList.OrderID.Visible (end) *@
+    @* Render list options (body, right) *@
+    @itemsList.ListOptions.RenderBody("right", itemsList.RowCount)
+    </tr>
+if (itemsList.RowType == RowType.Add || itemsList.RowType == RowType.Edit) {
+<script>
+loadjs.ready(["@(itemsList.FormName)","load"], () => @(itemsList.FormName).updateLists(@(itemsList.RowIndex)@(itemsList.IsAdd || itemsList.IsEdit || itemsList.IsCopy || SameString(itemsList.RowIndex, "$rowindex$") ? ", true" : "")));
+</script>
+}
+    } @* End if *@
+
+    // Reset for template row
+    if (SameString(itemsList.RowIndex, "$rowindex$"))
+        itemsList.RowIndex = 0;
+
+    // Reset inline add/copy row
+    if ((itemsList.IsCopy || itemsList.IsAdd) && itemsList.RowIndex is int rowIndex2 && rowIndex2 == 0)
+        itemsList.RowIndex = 1;
+} @* End While *@
+</tbody>
+</table><!-- /.ew-table -->
+} @* End If TotalRecords > 0 *@
+@if (itemsList.IsAdd || itemsList.IsCopy) {
+<input type="hidden" name="@(itemsList.FormKeyCountName)" id="@(itemsList.FormKeyCountName)" value="@(itemsList.KeyCount)">
+<input type="hidden" name="@(itemsList.OldKeyName)" value="@Html.Raw(itemsList.OldKey)">
+}
+@if (itemsList.IsEdit) {
+<input type="hidden" name="@(itemsList.FormKeyCountName)" id="@(itemsList.FormKeyCountName)" value="@(itemsList.KeyCount)">
+}
+</div><!-- /.ew-grid-middle-panel -->
+@if (Empty(itemsList.CurrentAction) && !itemsList.UseAjaxActions) {
+<input type="hidden" name="action" id="action" value="">
+}
+</form><!-- /.ew-list-form -->
+@{ itemsList.CloseRecordset(); }
+@if (!itemsList.IsExport()) {
+<div class="card-footer ew-grid-lower-panel">
+@if (!itemsList.IsGridAdd && !(itemsList.IsGridEdit && itemsList.ModalGridEdit) && !itemsList.IsMultiEdit) {
+@Html.Raw(itemsList.Pager.Render())
+}
+<div class="ew-list-other-options">
+@itemsList.OtherOptions.RenderBody("bottom")
+</div>
+</div>
+}
+</div><!-- /.ew-grid -->
+} else { // Show other options
+<div class="ew-list-other-options">
+@itemsList.OtherOptions.ForEach(opt => opt.ButtonClass = "").RenderBody()
+</div>
+}
+</div>
+</main>
+@itemsList.ShowPageFooter()
+@Html.Raw(GetDebugMessage())
+@ElapsedTime()
+@if (!itemsList.IsExport()) {
+<script>
+// Field event handlers
+loadjs.ready("head", function() {
+    ew.addEventHandlers("Items");
+});
+</script>
+<script>
+loadjs.ready("load", function() {
+    // Write your table-specific startup script here
+    // document.write("page loaded");
+});
+</script>
+}

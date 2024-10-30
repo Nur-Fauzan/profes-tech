@@ -140,7 +140,7 @@ public partial class project1 {
         }
 
         // Page name
-        public string PageName => "OrderDelete";
+        public string PageName => "OrdersDelete";
 
         // Page URL
         public string PageUrl
@@ -272,7 +272,7 @@ public partial class project1 {
             // Create token
             CreateToken();
             CurrentBreadcrumb = new ();
-            return Terminate("OrderList"); // Exit and go to default page
+            return Terminate("OrdersList"); // Exit and go to default page
 
             // Set LoginStatus, Page Rendering and Page Render
             if (!IsApi() && !IsTerminated) {

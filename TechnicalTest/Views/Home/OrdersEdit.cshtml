@@ -1,0 +1,232 @@
+@{
+    // View
+    View = this;
+
+    // Check action result
+    if (ordersEdit.ActionResult is EmptyResult) { // Terminate page
+        return;
+    }
+
+    // Layout
+    if (!ordersEdit.UseLayout) // UseLayout = false // DN
+        Layout = "";
+    else
+        Layout = "_Layout";
+
+    // Local variables (Temp data)
+    #pragma warning disable 168
+    string? sqlWrk, filterWrk, whereWrk, curVal, dispVal;
+    List<Dictionary<string, object>>? rswrk;
+    string[]? arWrk;
+    List<object?>? listWrk;
+    object? guidWrk;
+    Func<string>? lookupFilter;
+    #pragma warning restore 168
+}
+<script>
+loadjs.ready("head", function() {
+    // Write your client script here, no need to add script tags.
+});
+</script>
+@ordersEdit.ShowPageHeader()
+@ordersEdit.ShowMessages()
+<main class="edit">
+<form name="fOrdersedit" id="fOrdersedit" class="@(ordersEdit.FormClassName)" action="@AppPath(CurrentPageName())" method="post" novalidate autocomplete="off">
+<script>
+var currentTable = @Html.Raw(ConvertToJson(ordersEdit.ToClientVar()));
+ew.deepAssign(ew.vars, { tables: { Orders: currentTable } });
+var currentPageID = ew.PAGE_ID = "edit";
+var currentForm;
+var fOrdersedit;
+loadjs.ready(["wrapper", "head"], function () {
+    let $ = jQuery;
+    let fields = currentTable.fields;
+
+    // Form object
+    let form = new ew.FormBuilder()
+        .setId("fOrdersedit")
+        .setPageId("edit")
+
+        // Add fields
+        .setFields([
+
+            ["SalesOrder", [fields.SalesOrder.visible && fields.SalesOrder.required ? ew.Validators.required(fields.SalesOrder.caption) : null], fields.SalesOrder.isInvalid],
+            ["OrderDate", [fields.OrderDate.visible && fields.OrderDate.required ? ew.Validators.required(fields.OrderDate.caption) : null, ew.Validators.datetime(fields.OrderDate.clientFormatPattern)], fields.OrderDate.isInvalid],
+            ["Customer", [fields.Customer.visible && fields.Customer.required ? ew.Validators.required(fields.Customer.caption) : null], fields.Customer.isInvalid],
+            ["Address", [fields.Address.visible && fields.Address.required ? ew.Validators.required(fields.Address.caption) : null], fields.Address.isInvalid]
+        ])
+
+        // Form_CustomValidate
+        .setCustomValidate(
+            function(fobj) { // DO NOT CHANGE THIS LINE!
+                    // Your custom validation code here, return false if invalid.
+                    return true;
+                }
+        )
+
+        // Use JavaScript validation or not
+        .setValidateRequired(ew.CLIENT_VALIDATE)
+
+        // Dynamic selection lists
+        .setLists({
+            "Customer": @Html.Raw(ordersEdit.Customer.ToClientList(ordersEdit)),
+        })
+        .build();
+    window[form.id] = form;
+    currentForm = form;
+    loadjs.done(form.id);
+});
+</script>
+@if (CurrentPage.CheckToken) {
+    <input type="hidden" name="@Config.TokenNameKey" value="@Config.TokenName"><!-- CSRF token name -->
+    @Html.AntiForgeryToken()
+}
+<input type="hidden" name="action" id="action" value="update">
+<input type="hidden" name="modal" value="@ConvertToInt(ordersEdit.IsModal)">
+@if (IsJsonResponse()) {
+<input type="hidden" name="json" value="1">
+}
+<input type="hidden" name="@(ordersEdit.OldKeyName)" value="@Html.Raw(ordersEdit.OldKey)">
+<div class="ew-edit-div"><!-- page* -->
+@if (ordersEdit.SalesOrder.Visible) { // ordersEdit.SalesOrder.Visible (begin)
+    <div id="r_SalesOrder" @Html.Raw(ordersEdit.SalesOrder.RowAttributes)>
+        <label id="elh_Orders_SalesOrder" for="x_SalesOrder" class="@(ordersEdit.LeftColumnClass)">@Html.Raw(ordersEdit.SalesOrder.Caption)@Html.Raw(ordersEdit.SalesOrder.Required ? Language.Phrase("FieldRequiredIndicator") : "")</label>
+        <div class="@(ordersEdit.RightColumnClass)"><div @Html.Raw(ordersEdit.SalesOrder.CellAttributes)>
+<span id="el_Orders_SalesOrder">
+<input type="@(ordersEdit.SalesOrder.InputTextType)" name="x_SalesOrder" id="x_SalesOrder" data-table="Orders" data-field="x_SalesOrder" value="@Html.Raw(ordersEdit.SalesOrder.EditValue)" size="30" maxlength="10" placeholder="@Html.Raw(HtmlEncode(ordersEdit.SalesOrder.PlaceHolder))" data-format-pattern="@(ordersEdit.SalesOrder.FormatPattern)"@Html.Raw(ordersEdit.SalesOrder.EditAttributes) aria-describedby="x_SalesOrder_help">
+@Html.Raw(ordersEdit.SalesOrder.GetCustomMessage)
+<div class="invalid-feedback">@Html.Raw(ordersEdit.SalesOrder.GetErrorMessage())</div>
+</span>
+</div></div>
+    </div>
+} @* ordersEdit.SalesOrder.Visible (end) *@
+@if (ordersEdit.OrderDate.Visible) { // ordersEdit.OrderDate.Visible (begin)
+    <div id="r_OrderDate" @Html.Raw(ordersEdit.OrderDate.RowAttributes)>
+        <label id="elh_Orders_OrderDate" for="x_OrderDate" class="@(ordersEdit.LeftColumnClass)">@Html.Raw(ordersEdit.OrderDate.Caption)@Html.Raw(ordersEdit.OrderDate.Required ? Language.Phrase("FieldRequiredIndicator") : "")</label>
+        <div class="@(ordersEdit.RightColumnClass)"><div @Html.Raw(ordersEdit.OrderDate.CellAttributes)>
+<span id="el_Orders_OrderDate">
+<input type="@(ordersEdit.OrderDate.InputTextType)" name="x_OrderDate" id="x_OrderDate" data-table="Orders" data-field="x_OrderDate" value="@Html.Raw(ordersEdit.OrderDate.EditValue)" placeholder="@Html.Raw(HtmlEncode(ordersEdit.OrderDate.PlaceHolder))" data-format-pattern="@(ordersEdit.OrderDate.FormatPattern)"@Html.Raw(ordersEdit.OrderDate.EditAttributes) aria-describedby="x_OrderDate_help">
+@Html.Raw(ordersEdit.OrderDate.GetCustomMessage)
+<div class="invalid-feedback">@Html.Raw(ordersEdit.OrderDate.GetErrorMessage())</div>
+@if (!ordersEdit.OrderDate.ReadOnly && !ordersEdit.OrderDate.Disabled && !ordersEdit.OrderDate.EditAttrs.Is("readonly") && !ordersEdit.OrderDate.EditAttrs.Is("disabled")) {
+<script>
+loadjs.ready(["fOrdersedit", "datetimepicker"], function () {
+    let format = "@Html.Raw(DateFormat(0))", // DN
+        options = {
+                localization: {
+                    locale: ew.LANGUAGE_ID + "-u-nu-" + ew.getNumberingSystem(),
+                    hourCycle: format.match(/H/) ? "h24" : "h12",
+                    format,
+                    ...ew.language.phrase("datetimepicker")
+                },
+                display: {
+                    icons: {
+                        previous: ew.IS_RTL ? "fa-solid fa-chevron-right" : "fa-solid fa-chevron-left",
+                        next: ew.IS_RTL ? "fa-solid fa-chevron-left" : "fa-solid fa-chevron-right"
+                    },
+                    components: {
+                        hours: !!format.match(/h/i),
+                        minutes: !!format.match(/m/),
+                        seconds: !!format.match(/s/i)
+                    },
+                    theme: ew.isDark() ? "dark" : "auto"
+                }
+            };
+    ew.createDateTimePicker("fOrdersedit", "x_OrderDate", ew.deepAssign({"useCurrent":false,"display":{"sideBySide":false}}, options));
+});
+</script>
+}
+</span>
+</div></div>
+    </div>
+} @* ordersEdit.OrderDate.Visible (end) *@
+@if (ordersEdit.Customer.Visible) { // ordersEdit.Customer.Visible (begin)
+    <div id="r_Customer" @Html.Raw(ordersEdit.Customer.RowAttributes)>
+        <label id="elh_Orders_Customer" for="x_Customer" class="@(ordersEdit.LeftColumnClass)">@Html.Raw(ordersEdit.Customer.Caption)@Html.Raw(ordersEdit.Customer.Required ? Language.Phrase("FieldRequiredIndicator") : "")</label>
+        <div class="@(ordersEdit.RightColumnClass)"><div @Html.Raw(ordersEdit.Customer.CellAttributes)>
+<span id="el_Orders_Customer">
+    <select
+        id="x_Customer"
+        name="x_Customer"
+        class="form-select ew-select@(ordersEdit.Customer.IsInvalidClass)"
+        data-select2-id="fOrdersedit_x_Customer"
+        data-table="Orders"
+        data-field="x_Customer"
+        data-value-separator="@(ordersEdit.Customer.DisplayValueSeparatorAttribute)"
+        data-placeholder="@(HtmlEncode(ordersEdit.Customer.PlaceHolder))"
+        @Html.Raw(ordersEdit.Customer.EditAttributes)>
+        @(ordersEdit.Customer.SelectOptionListHtml("x_Customer"))
+    </select>
+    @Html.Raw(ordersEdit.Customer.GetCustomMessage)
+    <div class="invalid-feedback">@Html.Raw(ordersEdit.Customer.GetErrorMessage())</div>
+<script>
+loadjs.ready("fOrdersedit", function() {
+    var options = { name: "x_Customer", selectId: "fOrdersedit_x_Customer" },
+        el = document.querySelector("select[data-select2-id='" + options.selectId + "']");
+    if (!el)
+        return;
+    options.closeOnSelect = !options.multiple;
+    options.dropdownParent = el.closest("#ew-modal-dialog, #ew-add-opt-dialog");
+    if (fOrdersedit.lists.Customer?.lookupOptions.length) {
+        options.data = { id: "x_Customer", form: "fOrdersedit" };
+    } else {
+        options.ajax = { id: "x_Customer", form: "fOrdersedit", limit: ew.LOOKUP_PAGE_SIZE };
+    }
+    options.minimumResultsForSearch = Infinity;
+    options = Object.assign({}, ew.selectOptions, options, ew.vars.tables.Orders.fields.Customer.selectOptions);
+    ew.createSelect(options);
+});
+</script>
+</span>
+</div></div>
+    </div>
+} @* ordersEdit.Customer.Visible (end) *@
+@if (ordersEdit.Address.Visible) { // ordersEdit.Address.Visible (begin)
+    <div id="r_Address" @Html.Raw(ordersEdit.Address.RowAttributes)>
+        <label id="elh_Orders_Address" for="x_Address" class="@(ordersEdit.LeftColumnClass)">@Html.Raw(ordersEdit.Address.Caption)@Html.Raw(ordersEdit.Address.Required ? Language.Phrase("FieldRequiredIndicator") : "")</label>
+        <div class="@(ordersEdit.RightColumnClass)"><div @Html.Raw(ordersEdit.Address.CellAttributes)>
+<span id="el_Orders_Address">
+<input type="@(ordersEdit.Address.InputTextType)" name="x_Address" id="x_Address" data-table="Orders" data-field="x_Address" value="@Html.Raw(ordersEdit.Address.EditValue)" size="30" maxlength="255" placeholder="@Html.Raw(HtmlEncode(ordersEdit.Address.PlaceHolder))" data-format-pattern="@(ordersEdit.Address.FormatPattern)"@Html.Raw(ordersEdit.Address.EditAttributes) aria-describedby="x_Address_help">
+@Html.Raw(ordersEdit.Address.GetCustomMessage)
+<div class="invalid-feedback">@Html.Raw(ordersEdit.Address.GetErrorMessage())</div>
+</span>
+</div></div>
+    </div>
+} @* ordersEdit.Address.Visible (end) *@
+</div><!-- /page* -->
+    <input type="hidden" data-table="Orders" data-field="x_ID" data-hidden="1" name="x_ID" id="x_ID" value="@Html.Raw(HtmlEncode(ordersEdit.ID.CurrentValue))">
+@{ ordersEdit.CloseRecordset(); }
+@if (ordersEdit.CurrentDetailTables.Contains("Items") && items.DetailEdit) {
+    if (!Empty(ordersEdit.CurrentDetailTable)) {
+<h4 class="ew-detail-caption">@Html.Raw(Language.TablePhrase("Items", "TblCaption"))</h4>
+    }
+        @await Html.PartialAsync("ItemsGrid")
+    View = this;
+}
+@Html.Raw(ordersEdit.IsModal ? "<template class=\"ew-modal-buttons\">" : "<div class=\"row ew-buttons\">")<!-- buttons .row -->
+    <div class="@(ordersEdit.OffsetColumnClass)"><!-- buttons offset -->
+    <button class="btn btn-primary ew-btn" name="btn-action" id="btn-action" type="submit" form="fOrdersedit">@Html.Raw(Language.Phrase("SaveBtn"))</button>
+@if (IsJsonResponse()) {
+    <button class="btn btn-default ew-btn" name="btn-cancel" id="btn-cancel" type="button" data-bs-dismiss="modal">@Html.Raw(Language.Phrase("CancelBtn"))</button>
+} else {
+    <button class="btn btn-default ew-btn" name="btn-cancel" id="btn-cancel" type="button" form="fOrdersedit" data-href="@AppPath(ordersEdit.ReturnUrl)">@Html.Raw(Language.Phrase("CancelBtn"))</button>
+}
+    </div><!-- /buttons offset -->
+@Html.Raw(ordersEdit.IsModal ? "</template>" : "</div>")<!-- /buttons .row -->
+</form>
+</main>
+@ordersEdit.ShowPageFooter()
+@Html.Raw(GetDebugMessage())
+@ElapsedTime()
+<script>
+// Field event handlers
+loadjs.ready("head", function() {
+    ew.addEventHandlers("Orders");
+});
+</script>
+<script>
+loadjs.ready("load", function() {
+    // Write your table-specific startup script here
+    // document.write("page loaded");
+});
+</script>

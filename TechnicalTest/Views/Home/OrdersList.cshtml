@@ -1,0 +1,485 @@
+@{
+    // View
+    View = this;
+
+    // Check action result
+    if (ordersList.ActionResult is EmptyResult) { // Terminate page
+        return;
+    }
+
+    // Layout
+    if (!ordersList.UseLayout) // UseLayout = false // DN
+        Layout = "";
+    else
+        Layout = "_Layout";
+
+    // Local variables (Temp data)
+    #pragma warning disable 168
+    string? sqlWrk, filterWrk, whereWrk, curVal, dispVal;
+    List<Dictionary<string, object>>? rswrk;
+    string[]? arWrk;
+    List<object?>? listWrk;
+    object? guidWrk;
+    Func<string>? lookupFilter;
+    #pragma warning restore 168
+}
+@if (!ordersList.IsExport()) {
+<script>
+var currentTable = @Html.Raw(ConvertToJson(ordersList.ToClientVar()));
+ew.deepAssign(ew.vars, { tables: { Orders: currentTable } });
+var currentPageID = ew.PAGE_ID = "list";
+var currentForm;
+var @(ordersList.FormName);
+loadjs.ready(["wrapper", "head"], function () {
+    let $ = jQuery;
+    let fields = currentTable.fields;
+
+    // Form object
+    let form = new ew.FormBuilder()
+        .setId("@(ordersList.FormName)")
+        .setPageId("list")
+        .setSubmitWithFetch(@(ordersList.UseAjaxActions ? "true" : "false"))
+        .setFormKeyCountName("@(ordersList.FormKeyCountName)")
+
+        // Dynamic selection lists
+        .setLists({
+            "SalesOrder": @Html.Raw(ordersList.SalesOrder.ToClientList(ordersList)),
+            "OrderDate": @Html.Raw(ordersList.OrderDate.ToClientList(ordersList)),
+            "Customer": @Html.Raw(ordersList.Customer.ToClientList(ordersList)),
+            "Address": @Html.Raw(ordersList.Address.ToClientList(ordersList)),
+        })
+        .build();
+    window[form.id] = form;
+    currentForm = form;
+    loadjs.done(form.id);
+});
+</script>
+<script>
+loadjs.ready("head", function() {
+    // Write your client script here, no need to add script tags.
+});
+</script>
+}
+@if (!ordersList.IsExport()) {
+<div class="btn-toolbar ew-toolbar">
+@if (ordersList.TotalRecords > 0 && ordersList.ExportOptions.Visible) {
+    ordersList.ExportOptions.Render("body");
+}
+@if (ordersList.ImportOptions.Visible) {
+    ordersList.ImportOptions.Render("body");
+}
+@if (ordersList.SearchOptions.Visible) {
+    ordersList.SearchOptions.Render("body");
+}
+@if (ordersList.FilterOptions.Visible) {
+    ordersList.FilterOptions.Render("body");
+}
+</div>
+}
+@if (ordersList.ShowCurrentFilter) {
+    ordersList.ShowFilterList();
+}
+@if (!ordersList.IsModal) {
+<form name="fOrderssrch" id="fOrderssrch" class="ew-form ew-ext-search-form" action="@AppPath(CurrentPageName())" novalidate autocomplete="off">
+<div id="fOrderssrch_search_panel" class="mb-2 mb-sm-0 @(ordersList.SearchPanelClass)"><!-- .ew-search-panel -->
+<script>
+var currentTable = @Html.Raw(ConvertToJson(ordersList.ToClientVar()));
+ew.deepAssign(ew.vars, { tables: { Orders: currentTable } });
+var currentForm;
+var fOrderssrch, currentSearchForm, currentAdvancedSearchForm;
+loadjs.ready(["wrapper", "head"], function () {
+    let $ = jQuery,
+        fields = currentTable.fields;
+
+    // Form object for search
+    let form = new ew.FormBuilder()
+        .setId("fOrderssrch")
+        .setPageId("list")
+@if (ordersList.UseAjaxActions) {
+        <text>.setSubmitWithFetch(true)</text>
+}
+
+        // Add fields
+        .setFields([
+
+            ["SalesOrder", [], fields.SalesOrder.isInvalid],
+            ["OrderDate", [], fields.OrderDate.isInvalid],
+            ["Customer", [], fields.Customer.isInvalid],
+            ["Address", [], fields.Address.isInvalid]
+        ])
+        // Validate form
+        .setValidate(
+            async function () {
+                if (!this.validateRequired)
+                    return true; // Ignore validation
+                let fobj = this.getForm();
+
+                // Validate fields
+                if (!this.validateFields())
+                    return false;
+
+                // Call Form_CustomValidate event
+                if (!(await this.customValidate?.(fobj) ?? true)) {
+                    this.focus();
+                    return false;
+                }
+                return true;
+            }
+        )
+
+        // Form_CustomValidate
+        .setCustomValidate(
+            function(fobj) { // DO NOT CHANGE THIS LINE!
+                    // Your custom validation code here, return false if invalid.
+                    return true;
+                }
+        )
+
+        // Use JavaScript validation or not
+        .setValidateRequired(ew.CLIENT_VALIDATE)
+
+        // Dynamic selection lists
+        .setLists({
+            "SalesOrder": @Html.Raw(ordersList.SalesOrder.ToClientList(ordersList)),
+            "OrderDate": @Html.Raw(ordersList.OrderDate.ToClientList(ordersList)),
+            "Customer": @Html.Raw(ordersList.Customer.ToClientList(ordersList)),
+            "Address": @Html.Raw(ordersList.Address.ToClientList(ordersList)),
+        })
+
+        // Filters
+        .setFilterList(@Html.Raw(await ordersList.GetFilterList()))
+        .build();
+    window[form.id] = form;
+    currentSearchForm = form;
+    loadjs.done(form.id);
+});
+</script>
+<input type="hidden" name="cmd" value="search">
+@if (!ordersList.IsExport() && Empty(ordersList.CurrentAction) && ordersList.HasSearchFields()) { @* Show search form (begin) *@
+<div class="ew-extended-search container-fluid ps-2">
+<div class="row mb-0@(ordersList.SearchFieldsPerRow > 0 ? " row-cols-sm-" + ordersList.SearchFieldsPerRow : "")">
+@{
+    // Render search row
+    ordersList.RowType = RowType.Search;
+    ordersList.ResetAttributes();
+    await ordersList.RenderRow();
+}
+@if (ordersList.SalesOrder.Visible) { // ordersList.SalesOrder.Visible (begin)
+    if (!ordersList.SalesOrder.UseFilter) {
+        ordersList.SearchColumnCount++;
+    }
+    <div id="xs_SalesOrder" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(ordersList.SalesOrder.UseFilter ? " ew-filter-field" : "")">
+        <select
+            id="x_SalesOrder"
+            name="x_SalesOrder[]"
+            class="form-control ew-select@(ordersList.SalesOrder.IsInvalidClass)"
+            data-select2-id="fOrderssrch_x_SalesOrder"
+            data-table="Orders"
+            data-field="x_SalesOrder"
+            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(ordersList.SalesOrder.Caption)))"
+            data-filter="true"
+            multiple
+            size="1"
+            data-value-separator="@(ordersList.SalesOrder.DisplayValueSeparatorAttribute)"
+            data-placeholder="@(HtmlEncode(ordersList.SalesOrder.PlaceHolder))"
+            data-ew-action="update-options"
+            @Html.Raw(ordersList.SalesOrder.EditAttributes)>
+            @(ordersList.SalesOrder.SelectOptionListHtml("x_SalesOrder", true))
+        </select>
+        <div class="invalid-feedback">@Html.Raw(ordersList.SalesOrder.GetErrorMessage(false))</div>
+        <script>
+        loadjs.ready("fOrderssrch", function() {
+            var options = {
+                name: "x_SalesOrder",
+                selectId: "fOrderssrch_x_SalesOrder",
+                ajax: { id: "x_SalesOrder", form: "fOrderssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
+            };
+            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Orders.fields.SalesOrder.filterOptions);
+            ew.createFilter(options);
+        });
+        </script>
+    </div><!-- /.col-sm-auto -->
+} @* ordersList.SalesOrder.Visible (end) *@
+@if (ordersList.OrderDate.Visible) { // ordersList.OrderDate.Visible (begin)
+    if (!ordersList.OrderDate.UseFilter) {
+        ordersList.SearchColumnCount++;
+    }
+    <div id="xs_OrderDate" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(ordersList.OrderDate.UseFilter ? " ew-filter-field" : "")">
+        <select
+            id="x_OrderDate"
+            name="x_OrderDate[]"
+            class="form-control ew-select@(ordersList.OrderDate.IsInvalidClass)"
+            data-select2-id="fOrderssrch_x_OrderDate"
+            data-table="Orders"
+            data-field="x_OrderDate"
+            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(ordersList.OrderDate.Caption)))"
+            data-filter="true"
+            multiple
+            size="1"
+            data-value-separator="@(ordersList.OrderDate.DisplayValueSeparatorAttribute)"
+            data-placeholder="@(HtmlEncode(ordersList.OrderDate.PlaceHolder))"
+            data-ew-action="update-options"
+            @Html.Raw(ordersList.OrderDate.EditAttributes)>
+            @(ordersList.OrderDate.SelectOptionListHtml("x_OrderDate", true))
+        </select>
+        <div class="invalid-feedback">@Html.Raw(ordersList.OrderDate.GetErrorMessage(false))</div>
+        <script>
+        loadjs.ready("fOrderssrch", function() {
+            var options = {
+                name: "x_OrderDate",
+                selectId: "fOrderssrch_x_OrderDate",
+                ajax: { id: "x_OrderDate", form: "fOrderssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
+            };
+            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Orders.fields.OrderDate.filterOptions);
+            ew.createFilter(options);
+        });
+        </script>
+    </div><!-- /.col-sm-auto -->
+} @* ordersList.OrderDate.Visible (end) *@
+@if (ordersList.Customer.Visible) { // ordersList.Customer.Visible (begin)
+    if (!ordersList.Customer.UseFilter) {
+        ordersList.SearchColumnCount++;
+    }
+    <div id="xs_Customer" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(ordersList.Customer.UseFilter ? " ew-filter-field" : "")">
+        <select
+            id="x_Customer"
+            name="x_Customer[]"
+            class="form-control ew-select@(ordersList.Customer.IsInvalidClass)"
+            data-select2-id="fOrderssrch_x_Customer"
+            data-table="Orders"
+            data-field="x_Customer"
+            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(ordersList.Customer.Caption)))"
+            data-filter="true"
+            multiple
+            size="1"
+            data-value-separator="@(ordersList.Customer.DisplayValueSeparatorAttribute)"
+            data-placeholder="@(HtmlEncode(ordersList.Customer.PlaceHolder))"
+            data-ew-action="update-options"
+            @Html.Raw(ordersList.Customer.EditAttributes)>
+            @(ordersList.Customer.SelectOptionListHtml("x_Customer", true))
+        </select>
+        <div class="invalid-feedback">@Html.Raw(ordersList.Customer.GetErrorMessage(false))</div>
+        <script>
+        loadjs.ready("fOrderssrch", function() {
+            var options = {
+                name: "x_Customer",
+                selectId: "fOrderssrch_x_Customer",
+                ajax: { id: "x_Customer", form: "fOrderssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
+            };
+            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Orders.fields.Customer.filterOptions);
+            ew.createFilter(options);
+        });
+        </script>
+    </div><!-- /.col-sm-auto -->
+} @* ordersList.Customer.Visible (end) *@
+@if (ordersList.Address.Visible) { // ordersList.Address.Visible (begin)
+    if (!ordersList.Address.UseFilter) {
+        ordersList.SearchColumnCount++;
+    }
+    <div id="xs_Address" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(ordersList.Address.UseFilter ? " ew-filter-field" : "")">
+        <select
+            id="x_Address"
+            name="x_Address[]"
+            class="form-control ew-select@(ordersList.Address.IsInvalidClass)"
+            data-select2-id="fOrderssrch_x_Address"
+            data-table="Orders"
+            data-field="x_Address"
+            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(ordersList.Address.Caption)))"
+            data-filter="true"
+            multiple
+            size="1"
+            data-value-separator="@(ordersList.Address.DisplayValueSeparatorAttribute)"
+            data-placeholder="@(HtmlEncode(ordersList.Address.PlaceHolder))"
+            data-ew-action="update-options"
+            @Html.Raw(ordersList.Address.EditAttributes)>
+            @(ordersList.Address.SelectOptionListHtml("x_Address", true))
+        </select>
+        <div class="invalid-feedback">@Html.Raw(ordersList.Address.GetErrorMessage(false))</div>
+        <script>
+        loadjs.ready("fOrderssrch", function() {
+            var options = {
+                name: "x_Address",
+                selectId: "fOrderssrch_x_Address",
+                ajax: { id: "x_Address", form: "fOrderssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
+            };
+            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Orders.fields.Address.filterOptions);
+            ew.createFilter(options);
+        });
+        </script>
+    </div><!-- /.col-sm-auto -->
+} @* ordersList.Address.Visible (end) *@
+</div><!-- /.row -->
+<div class="row mb-0">
+    <div class="col-sm-auto px-0 pe-sm-2">
+        <div class="ew-basic-search input-group">
+            <input type="search" name="@(Config.TableBasicSearch)" id="@(Config.TableBasicSearch)" class="form-control ew-basic-search-keyword" value="@Html.Raw(HtmlEncode(ordersList.BasicSearch.SessionKeyword))" placeholder="@(HtmlEncode(Language.Phrase("Search")))" aria-label="@(HtmlEncode(Language.Phrase("Search")))">
+            <input type="hidden" name="@(Config.TableBasicSearchType)" id="@(Config.TableBasicSearchType)" class="ew-basic-search-type" value="@(HtmlEncode(ordersList.BasicSearch.SessionType))">
+            <button type="button" data-bs-toggle="dropdown" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" aria-haspopup="true" aria-expanded="false">
+                <span id="searchtype">@Html.Raw(ordersList.BasicSearch.TypeNameShort)</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end">
+                <button type="button" class="dropdown-item@(ordersList.BasicSearch.SessionType == "" ? " active" : "")" form="fOrderssrch" data-ew-action="search-type">@Html.Raw(Language.Phrase("QuickSearchAuto"))</button>
+                <button type="button" class="dropdown-item@(ordersList.BasicSearch.SessionType == "=" ? " active" : "")" form="fOrderssrch" data-ew-action="search-type" data-search-type="=">@Html.Raw(Language.Phrase("QuickSearchExact"))</button>
+                <button type="button" class="dropdown-item@(ordersList.BasicSearch.SessionType == "AND" ? " active" : "")" form="fOrderssrch" data-ew-action="search-type" data-search-type="AND">@Html.Raw(Language.Phrase("QuickSearchAll"))</button>
+                <button type="button" class="dropdown-item@(ordersList.BasicSearch.SessionType == "OR" ? " active" : "")" form="fOrderssrch" data-ew-action="search-type" data-search-type="OR">@Html.Raw(Language.Phrase("QuickSearchAny"))</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-auto mb-3">
+        <button class="btn btn-primary" name="btn-submit" id="btn-submit" type="submit">@Html.Raw(Language.Phrase("SearchBtn"))</button>
+    </div>
+</div>
+</div><!-- /.ew-extended-search -->
+} @* Show search form (end) *@
+</div><!-- /.ew-search-panel -->
+</form>
+}
+@ordersList.ShowPageHeader()
+@ordersList.ShowMessages()
+<main class="list @(ordersList.TotalRecords == 0 && !ordersList.IsAdd ? " ew-no-record" : "")">
+<div id="ew-list">
+@if (ordersList.TotalRecords > 0 || !Empty(ordersList.CurrentAction)) {
+<div class="card ew-card ew-grid@(ordersList.IsAddOrEdit ? " ew-grid-add-edit" : "") @(ordersList.TableGridClass)">
+<form name="@(ordersList.FormName)" id="@(ordersList.FormName)" class="ew-form ew-list-form" action="@AppPath(ordersList.PageName)" method="post" novalidate autocomplete="off">
+@if (CurrentPage.CheckToken) {
+    <input type="hidden" name="@Config.TokenNameKey" value="@Config.TokenName"><!-- CSRF token name -->
+    @Html.AntiForgeryToken()
+}
+@if (ordersList.IsModal) {
+<input type="hidden" name="modal" value="1">
+}
+<div id="gmp_Orders" class="card-body ew-grid-middle-panel @(ordersList.TableContainerClass)" style="@(ordersList.TableContainerStyle)">
+@if (ordersList.TotalRecords > 0 || ordersList.IsGridEdit || ordersList.IsMultiEdit) {
+<table id="tbl_Orderslist" class="@(ordersList.TableClass)"><!-- .ew-table -->
+<thead>
+    <tr class="ew-table-header">
+@{
+    // Header row
+    ordersList.RowType = RowType.Header;
+
+    // Render list options
+    await ordersList.RenderListOptions();
+}
+@* Render list options (header, left) *@
+@ordersList.ListOptions.RenderHeader("left")
+@if (ordersList.SalesOrder.Visible) { // ordersList.SalesOrder.Visible (begin)
+        <th data-name="SalesOrder" class="@(ordersList.SalesOrder.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Orders_SalesOrder" class="Orders_SalesOrder">@Html.Raw(ordersList.RenderFieldHeader(ordersList.SalesOrder))</div></th>
+} @* ordersList.SalesOrder.Visible (end) *@
+@if (ordersList.OrderDate.Visible) { // ordersList.OrderDate.Visible (begin)
+        <th data-name="OrderDate" class="@(ordersList.OrderDate.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Orders_OrderDate" class="Orders_OrderDate">@Html.Raw(ordersList.RenderFieldHeader(ordersList.OrderDate))</div></th>
+} @* ordersList.OrderDate.Visible (end) *@
+@if (ordersList.Customer.Visible) { // ordersList.Customer.Visible (begin)
+        <th data-name="Customer" class="@(ordersList.Customer.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Orders_Customer" class="Orders_Customer">@Html.Raw(ordersList.RenderFieldHeader(ordersList.Customer))</div></th>
+} @* ordersList.Customer.Visible (end) *@
+@if (ordersList.Address.Visible) { // ordersList.Address.Visible (begin)
+        <th data-name="Address" class="@(ordersList.Address.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Orders_Address" class="Orders_Address">@Html.Raw(ordersList.RenderFieldHeader(ordersList.Address))</div></th>
+} @* ordersList.Address.Visible (end) *@
+@* Render list options (header, right) *@
+@ordersList.ListOptions.RenderHeader("right")
+    </tr>
+</thead>
+<tbody data-page="@(ordersList.PageNumber)">
+@{
+    await ordersList.SetupGrid();
+    bool eof = ordersList.Recordset == null; // DN
+}
+@while (ordersList.RecordCount < ordersList.StopRecord || SameString(ordersList.RowIndex, "$rowindex$")) { // Begin While
+    if (!eof && !SameString(ordersList.RowIndex, "$rowindex$") &&
+        (!ordersList.IsGridAdd || ordersList.CurrentMode == "copy") &&
+        (!((ordersList.IsCopy || ordersList.IsAdd) && ordersList.RowIndex is int rowIndex && rowIndex == 0))) // DN
+        eof = !await ordersList.Recordset.ReadAsync();
+    ordersList.RecordCount++;
+    if (ordersList.RecordCount >= ordersList.StartRecord) {
+        await ordersList.SetupRow();
+    <tr @Html.Raw(ordersList.RowAttributes)>
+    @* Render list options (body, left) *@
+    @ordersList.ListOptions.RenderBody("left", ordersList.RowCount)
+    @if (ordersList.SalesOrder.Visible) { // ordersList.SalesOrder.Visible (begin)
+        <td data-name="SalesOrder" @Html.Raw(ordersList.SalesOrder.CellAttributes)>
+<span id="el@(ordersList.RowIndex == "$rowindex$" ? "$rowindex$" : ordersList.RowCount)_Orders_SalesOrder" class="el_Orders_SalesOrder">
+<span @Html.Raw(ordersList.SalesOrder.ViewAttributes)>
+@Html.Raw(ordersList.SalesOrder.GetViewValue())</span>
+</span>
+</td>
+    } @* ordersList.SalesOrder.Visible (end) *@
+    @if (ordersList.OrderDate.Visible) { // ordersList.OrderDate.Visible (begin)
+        <td data-name="OrderDate" @Html.Raw(ordersList.OrderDate.CellAttributes)>
+<span id="el@(ordersList.RowIndex == "$rowindex$" ? "$rowindex$" : ordersList.RowCount)_Orders_OrderDate" class="el_Orders_OrderDate">
+<span @Html.Raw(ordersList.OrderDate.ViewAttributes)>
+@Html.Raw(ordersList.OrderDate.GetViewValue())</span>
+</span>
+</td>
+    } @* ordersList.OrderDate.Visible (end) *@
+    @if (ordersList.Customer.Visible) { // ordersList.Customer.Visible (begin)
+        <td data-name="Customer" @Html.Raw(ordersList.Customer.CellAttributes)>
+<span id="el@(ordersList.RowIndex == "$rowindex$" ? "$rowindex$" : ordersList.RowCount)_Orders_Customer" class="el_Orders_Customer">
+<span @Html.Raw(ordersList.Customer.ViewAttributes)>
+@Html.Raw(ordersList.Customer.GetViewValue())</span>
+</span>
+</td>
+    } @* ordersList.Customer.Visible (end) *@
+    @if (ordersList.Address.Visible) { // ordersList.Address.Visible (begin)
+        <td data-name="Address" @Html.Raw(ordersList.Address.CellAttributes)>
+<span id="el@(ordersList.RowIndex == "$rowindex$" ? "$rowindex$" : ordersList.RowCount)_Orders_Address" class="el_Orders_Address">
+<span @Html.Raw(ordersList.Address.ViewAttributes)>
+@Html.Raw(ordersList.Address.GetViewValue())</span>
+</span>
+</td>
+    } @* ordersList.Address.Visible (end) *@
+    @* Render list options (body, right) *@
+    @ordersList.ListOptions.RenderBody("right", ordersList.RowCount)
+    </tr>
+    } @* End if *@
+
+    // Reset for template row
+    if (SameString(ordersList.RowIndex, "$rowindex$"))
+        ordersList.RowIndex = 0;
+
+    // Reset inline add/copy row
+    if ((ordersList.IsCopy || ordersList.IsAdd) && ordersList.RowIndex is int rowIndex2 && rowIndex2 == 0)
+        ordersList.RowIndex = 1;
+} @* End While *@
+</tbody>
+</table><!-- /.ew-table -->
+} @* End If TotalRecords > 0 *@
+</div><!-- /.ew-grid-middle-panel -->
+@if (Empty(ordersList.CurrentAction) && !ordersList.UseAjaxActions) {
+<input type="hidden" name="action" id="action" value="">
+}
+</form><!-- /.ew-list-form -->
+@{ ordersList.CloseRecordset(); }
+@if (!ordersList.IsExport()) {
+<div class="card-footer ew-grid-lower-panel">
+@if (!ordersList.IsGridAdd && !(ordersList.IsGridEdit && ordersList.ModalGridEdit) && !ordersList.IsMultiEdit) {
+@Html.Raw(ordersList.Pager.Render())
+}
+<div class="ew-list-other-options">
+@ordersList.OtherOptions.RenderBody("bottom")
+</div>
+</div>
+}
+</div><!-- /.ew-grid -->
+} else { // Show other options
+<div class="ew-list-other-options">
+@ordersList.OtherOptions.ForEach(opt => opt.ButtonClass = "").RenderBody()
+</div>
+}
+</div>
+</main>
+@ordersList.ShowPageFooter()
+@Html.Raw(GetDebugMessage())
+@ElapsedTime()
+@if (!ordersList.IsExport()) {
+<script>
+// Field event handlers
+loadjs.ready("head", function() {
+    ew.addEventHandlers("Orders");
+});
+</script>
+<script>
+loadjs.ready("load", function() {
+    // Write your table-specific startup script here
+    // document.write("page loaded");
+});
+</script>
+}
