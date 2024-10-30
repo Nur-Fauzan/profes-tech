@@ -48,15 +48,7 @@ loadjs.ready(["wrapper", "head"], function () {
 </script>
 <script>
 loadjs.ready("head", function() {
-    // Client script
     // Write your client script here, no need to add script tags.
-    });
-    document.querySelectorAll('a[data-caption="Export to Excel"]').forEach(link => {
-        link.style.color = "#fff";
-        link.style.backgroundColor = "#0d6efd";
-        link.textContent = "Export to Excel";
-    });
-    loadjs.ready("load", function() {
 });
 </script>
 }
@@ -280,8 +272,26 @@ loadjs.ready("head", function() {
 </script>
 <script>
 loadjs.ready("load", function() {
+    // Startup script
     // Write your table-specific startup script here
     // document.write("page loaded");
+    });
+    document.querySelectorAll('a[data-caption="Export to Excel"]').forEach(link => {
+        link.style.color = "#fff";
+        link.style.backgroundColor = "#0d6efd";
+        link.textContent = "Export to Excel";
+    });
+    loadjs.ready("load", function() {
+    let printButton = $("<a></a>", { 
+        class: "btn btn-primary",
+        name: "btn-add-program",
+        id: "btn-add-program",
+        type: "button",
+        text: "New Data",
+        style: "margin-left: 10px;",
+        href: "/OrdersAdd?showdetail="
+    });
+    $("#btn-submit").after(printButton);
 });
 </script>
 }

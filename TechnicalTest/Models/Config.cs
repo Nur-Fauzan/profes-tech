@@ -78,7 +78,7 @@ public partial class project1 {
 
         public const string ProjectId = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}"; // Project ID (GUID)
 
-        public static string RandomKey = "ynNaNeCBR8TBheAY"; // Random key for encryption
+        public static string RandomKey = "i0hr7xqJnyPtx59z"; // Random key for encryption
 
         public static string EncryptionKey = ""; // Encryption key for data protection
 

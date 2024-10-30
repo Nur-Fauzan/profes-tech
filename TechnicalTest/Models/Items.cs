@@ -1448,7 +1448,6 @@ public partial class project1 {
                         doc.ExportCaption(ItemName);
                         doc.ExportCaption(Qty);
                         doc.ExportCaption(Price);
-                        doc.ExportCaption(Total);
                     } else {
                         doc.ExportCaption(ItemName);
                         doc.ExportCaption(Qty);
@@ -1495,7 +1494,6 @@ public partial class project1 {
                             await doc.ExportField(ItemName);
                             await doc.ExportField(Qty);
                             await doc.ExportField(Price);
-                            await doc.ExportField(Total);
                         } else {
                             await doc.ExportField(ItemName);
                             await doc.ExportField(Qty);

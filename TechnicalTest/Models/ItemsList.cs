@@ -695,6 +695,9 @@ public partial class project1 {
 
             // Set up list options
             await SetupListOptions();
+
+            // Setup export options
+            SetupExportOptions();
             SetVisibility();
 
             // Do not use lookup cache
@@ -2408,6 +2411,101 @@ public partial class project1 {
             return new JsonBoolResult(d, result);
         }
 
+        // Get export HTML tag
+        protected string GetExportTag(string type, bool custom = false) {
+            string exportUrl = AppPath(CurrentPageName()); // DN
+            if (type == "print" || custom) { // Printer friendly / custom export
+                exportUrl += "?export=" + type + (custom ? "&amp;custom=1" : "");
+            } else {
+                exportUrl = AppPath(Config.ApiUrl + Config.ApiExportAction + "/" + type + "/" + TableVar);
+            }
+            if (SameText(type, "excel")) {
+                if (custom)
+                    return "<button type=\"button\" class=\"btn btn-default ew-export-link ew-excel\" title=\"" + HtmlEncode(Language.Phrase("ExportToExcel", true)) + "\" data-caption=\"" + HtmlEncode(Language.Phrase("ExportToExcel", true)) + "\" form=\"fItemslist\" data-url=\"" + exportUrl + "\" data-ew-action=\"export\" data-export=\"excel\" data-custom=\"true\" data-export-selected=\"false\">" + Language.Phrase("ExportToExcel") + "</button>";
+                else
+                    return "<a href=\"" + exportUrl + "\" class=\"btn btn-default ew-export-link ew-excel\" title=\"" + HtmlEncode(Language.Phrase("ExportToExcel", true)) + "\" data-caption=\"" + HtmlEncode(Language.Phrase("ExportToExcel", true)) + "\">" + Language.Phrase("ExportToExcel") + "</a>";
+            } else if (SameText(type, "word")) {
+                if (custom)
+                    return "<button type=\"button\" class=\"btn btn-default ew-export-link ew-word\" title=\"" + HtmlEncode(Language.Phrase("ExportToWord", true)) + "\" data-caption=\"" + HtmlEncode(Language.Phrase("ExportToWord", true)) + "\" form=\"fItemslist\" data-url=\"" + exportUrl + "\" data-ew-action=\"export\" data-export=\"word\" data-custom=\"true\" data-export-selected=\"false\">" + Language.Phrase("ExportToWord") + "</button>";
+                else
+                    return "<a href=\"" + exportUrl + "\" class=\"btn btn-default ew-export-link ew-word\" title=\"" + HtmlEncode(Language.Phrase("ExportToWord", true)) + "\" data-caption=\"" + HtmlEncode(Language.Phrase("ExportToWord", true)) + "\">" + Language.Phrase("ExportToWord") + "</a>";
+            } else if (SameText(type, "pdf")) {
+                if (custom)
+                    return "<button type=\"button\" class=\"btn btn-default ew-export-link ew-pdf\" title=\"" + HtmlEncode(Language.Phrase("ExportToPdf", true)) + "\" data-caption=\"" + HtmlEncode(Language.Phrase("ExportToPdf", true)) + "\" form=\"fItemslist\" data-url=\"" + exportUrl + "\" data-ew-action=\"export\" data-export=\"pdf\" data-custom=\"true\" data-export-selected=\"false\">" + Language.Phrase("ExportToPDF") + "</button>";
+                else
+                    return "<a href=\"" + exportUrl + "\" class=\"btn btn-default ew-export-link ew-pdf\" title=\"" + HtmlEncode(Language.Phrase("ExportToPdf", true)) + "\" data-caption=\"" + HtmlEncode(Language.Phrase("ExportToPdf", true)) + "\">" + Language.Phrase("ExportToPDF") + "</a>";
+            } else if (SameText(type, "html")) {
+                return "<a href=\"" + exportUrl + "\" class=\"btn btn-default ew-export-link ew-html\" title=\"" + HtmlEncode(Language.Phrase("ExportToHtml", true)) + "\" data-caption=\"" + HtmlEncode(Language.Phrase("ExportToHtml", true)) + "\">" + Language.Phrase("ExportToHtml") + "</a>";
+            } else if (SameText(type, "xml")) {
+                return "<a href=\"" + exportUrl + "\" class=\"btn btn-default ew-export-link ew-xml\" title=\"" + HtmlEncode(Language.Phrase("ExportToXml", true)) + "\" data-caption=\"" + HtmlEncode(Language.Phrase("ExportToXml", true)) + "\">" + Language.Phrase("ExportToXml") + "</a>";
+            } else if (SameText(type, "csv")) {
+                return "<a href=\"" + exportUrl + "\" class=\"btn btn-default ew-export-link ew-csv\" title=\"" + HtmlEncode(Language.Phrase("ExportToCsv", true)) + "\" data-caption=\"" + HtmlEncode(Language.Phrase("ExportToCsv", true)) + "\">" + Language.Phrase("ExportToCsv") + "</a>";
+            } else if (SameText(type, "email")) {
+                string url = custom ? " data-url=\"" + exportUrl + "\"" : "";
+                return "<button type=\"button\" class=\"btn btn-default ew-export-link ew-email\" title=\"" + Language.Phrase("ExportToEmail", true) + "\" data-caption=\"" + Language.Phrase("ExportToEmail", true) + "\" form=\"fItemslist\" data-ew-action=\"email\" data-custom=\"false\" data-hdr=\"" + Language.Phrase("ExportToEmail", true) + "\" data-export-selected=\"false\"" + url + ">" + Language.Phrase("ExportToEmail") + "</button>";
+            } else if (SameText(type, "print")) {
+                return "<a href=\"" + exportUrl + "\" class=\"btn btn-default ew-export-link ew-print\" title=\"" + HtmlEncode(Language.Phrase("PrinterFriendly", true)) + "\" data-caption=\"" + HtmlEncode(Language.Phrase("PrinterFriendly", true)) + "\">" + Language.Phrase("PrinterFriendly") + "</a>";
+            }
+            return "";
+        }
+
+        // Set up export options
+        protected void SetupExportOptions() {
+            ListOption item;
+
+            // Printer friendly
+            item = ExportOptions.Add("print");
+            item.Body = GetExportTag("print");
+            item.Visible = false;
+
+            // Export to Excel
+            item = ExportOptions.Add("excel");
+            item.Body = GetExportTag("excel");
+            item.Visible = true;
+
+            // Export to Word
+            item = ExportOptions.Add("word");
+            item.Body = GetExportTag("word");
+            item.Visible = false;
+
+            // Export to HTML
+            item = ExportOptions.Add("html");
+            item.Body = GetExportTag("html");
+            item.Visible = false;
+
+            // Export to XML
+            item = ExportOptions.Add("xml");
+            item.Body = GetExportTag("xml");
+            item.Visible = false;
+
+            // Export to CSV
+            item = ExportOptions.Add("csv");
+            item.Body = GetExportTag("csv");
+            item.Visible = false;
+
+            // Export to PDF
+            item = ExportOptions.Add("pdf");
+            item.Body = GetExportTag("pdf");
+            item.Visible = false;
+
+            // Export to Email
+            item = ExportOptions.Add("email");
+            item.Body = GetExportTag("email");
+            item.Visible = false;
+
+            // Drop down button for export
+            ExportOptions.UseButtonGroup = true;
+            ExportOptions.UseDropDownButton = false;
+            if (ExportOptions.UseButtonGroup && IsMobile())
+                ExportOptions.UseDropDownButton = true;
+            ExportOptions.DropDownButtonPhrase = "ButtonExport";
+
+            // Add group option item
+            item = ExportOptions.AddGroupOption();
+            item.Body = "";
+            item.Visible = false;
+        }
+
         // Set up search options
         protected void SetupSearchOptions() {
             ListOption item;
@@ -2437,6 +2535,90 @@ public partial class project1 {
         protected void RenderSearchOptions()
         {
         }
+
+        #pragma warning disable 168
+
+        /// <summary>
+        /// Export data
+        /// </summary>
+        public async Task ExportData(dynamic? doc)
+        {
+            // Load recordset // DN
+            DbDataReader? dr = null;
+            if (TotalRecords < 0)
+                TotalRecords = await ListRecordCountAsync();
+            StartRecord = 1;
+
+            // Export all
+            if (ExportAll) {
+                DisplayRecords = TotalRecords;
+                StopRecord = TotalRecords;
+            } else { // Export one page only
+                SetupStartRecord(); // Set up start record position
+                // Set the last record to display
+                if (DisplayRecords < 0) {
+                    StopRecord = TotalRecords;
+                } else {
+                    StopRecord = StartRecord + DisplayRecords - 1;
+                }
+            }
+            CloseRecordset(); // DN
+            dr = await LoadRecordset(StartRecord - 1, (DisplayRecords <= 0) ? TotalRecords : DisplayRecords); // DN
+            if (doc == null) { // DN
+                RemoveHeader("Content-Type"); // Remove header
+                RemoveHeader("Content-Disposition");
+                FailureMessage = Language.Phrase("ExportClassNotFound"); // Export class not found
+                return;
+            }
+
+            // Call Page Exporting server event
+            doc.ExportCustom = !PageExporting(ref doc);
+            string exportStyle;
+
+            // Export master record
+            if (Config.ExportMasterRecord && !Empty(MasterFilterFromSession) && CurrentMasterTable == "Orders") {
+                orders = new OrdersList();
+                if (orders != null) {
+                    var c = await GetConnection2Async(orders.DbId); // Note: Use new connection for master record // DN
+                    using var rsmaster = await orders.LoadReader(DbMasterFilter, "", c); // Load master record
+                    if (rsmaster?.HasRows ?? false) { // DN
+                        exportStyle = doc.Style;
+                        doc.SetStyle("v"); // Change to vertical
+                        if (!IsExport("csv") || Config.ExportMasterRecordForCsv) {
+                            doc.Table = orders;
+                            await orders.ExportDocument(doc, rsmaster, 1, 1);
+                            doc.ExportEmptyRow();
+                            doc.Table = this;
+                        }
+                        doc.SetStyle(exportStyle); // Restore
+                    }
+                }
+            }
+
+            // Page header
+            string header = PageHeader;
+            PageDataRendering(ref header);
+            doc.Text.Append(header);
+
+            // Export
+            if (dr != null)
+                await ExportDocument(doc, dr, StartRecord, StopRecord, "");
+
+            // Page footer
+            string footer = PageFooter;
+            PageDataRendered(ref footer);
+            doc.Text.Append(footer);
+
+            // Close recordset
+            using (dr) {} // Dispose
+
+            // Export header and footer
+            await doc.ExportHeaderAndFooter();
+
+            // Call Page Exported server event
+            PageExported(doc);
+        }
+        #pragma warning restore 168
 
         // Set up master/detail based on QueryString
         protected void SetupMasterParms() {

@@ -72,20 +72,7 @@ loadjs.ready(["wrapper", "head"], function () {
 </script>
 <script>
 loadjs.ready("head", function() {
-    // Client script
     // Write your client script here, no need to add script tags.
-        const flexDiv = $("<div class='d-flex mb-3'></div>");
-        const printButton = $("<a></a>", { 
-            text: "Back",
-            class: "btn btn-default ew-btn me-3", 
-            id: "btn-print",
-            name: "btn-print",
-            href: "/OrdersList",
-        });
-        flexDiv.append(printButton);
-        const buttonsDiv = $("<div class='row ew-buttons'></div>");
-        buttonsDiv.append(flexDiv);
-        $("main").after(buttonsDiv);
 });
 </script>
 }
@@ -394,8 +381,45 @@ loadjs.ready("head", function() {
 </script>
 <script>
 loadjs.ready("load", function() {
+    // Startup script
     // Write your table-specific startup script here
     // document.write("page loaded");
+    });
+    document.querySelectorAll('a[data-caption="Export to Excel"]').forEach(link => {
+        link.style.color = "#fff";
+        link.style.backgroundColor = "#0d6efd";
+        link.textContent = "Export to Excel";
+    });
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get("action");
+    if (action === "add" || action === "edit") {
+        $('td[data-name="Total"], th[data-name="Total"]').hide();
+    }
+    loadjs.ready("load", function() {
+    const flexDiv = $("<div class='d-flex mb-3'></div>");
+    let printButton = $("<a></a>", { 
+        text: "Back",
+        class: "btn btn-default ew-btn me-3", 
+        id: "btn-print",
+        name: "btn-print",
+        href: "/OrdersList",
+    });
+    if (action === "add" || action === "edit") {
+        printButton = $("<a></a>", { 
+            text: "Back",
+            class: "btn btn-default ew-btn me-3", 
+            id: "btn-print",
+            name: "btn-print",
+            href: "javascript:void(0);",
+        });
+        printButton.on("click", function() {
+            window.history.back();
+        });
+    }
+    flexDiv.append(printButton);
+    const buttonsDiv = $("<div class='row ew-buttons'></div>");
+    buttonsDiv.append(flexDiv);
+    $("main").after(buttonsDiv);
 });
 </script>
 }
