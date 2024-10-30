@@ -26,7 +26,7 @@ public partial class project1 {
         public static List<UserLevelTablePermission> UserLevelTablePermissions = new ()
         {
             new () { TableName = "Item", TableVar = "Item", Caption = "Item", Allowed = true, ProjectId = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}", Url = "ItemList" },
-            new () { TableName = "Order", TableVar = "Order", Caption = "Order", Allowed = true, ProjectId = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}", Url = "OrderList" }
+            new () { TableName = "Order", TableVar = "Order", Caption = "Sales Order", Allowed = true, ProjectId = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}", Url = "OrderList" }
         };
     }
 } // End Partial class

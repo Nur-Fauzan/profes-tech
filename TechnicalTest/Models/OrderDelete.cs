@@ -198,7 +198,7 @@ public partial class project1 {
         // Set field visibility
         public void SetVisibility()
         {
-            ID.SetVisibility();
+            ID.Visible = false;
             SalesOrder.SetVisibility();
             OrderDate.SetVisibility();
             Customer.SetVisibility();
@@ -416,6 +416,9 @@ public partial class project1 {
             if (UseAjaxActions)
                 InlineDelete = true;
 
+            // Set up lookup cache
+            await SetupLookupOptions(Customer);
+
             // Set up Breadcrumb
             SetupBreadcrumb();
 
@@ -580,21 +583,22 @@ public partial class project1 {
             // Common render codes for all row types
 
             // ID
+            ID.CellCssStyle = "white-space: nowrap;";
 
             // SalesOrder
+            SalesOrder.CellCssStyle = "white-space: nowrap;";
 
             // OrderDate
+            OrderDate.CellCssStyle = "white-space: nowrap;";
 
             // Customer
+            Customer.CellCssStyle = "white-space: nowrap;";
 
             // Address
+            Address.CellCssStyle = "white-space: nowrap;";
 
             // View row
             if (RowType == RowType.View) {
-                // ID
-                ID.ViewValue = ID.CurrentValue;
-                ID.ViewCustomAttributes = "";
-
                 // SalesOrder
                 SalesOrder.ViewValue = ConvertToString(SalesOrder.CurrentValue); // DN
                 SalesOrder.ViewCustomAttributes = "";
@@ -605,16 +609,16 @@ public partial class project1 {
                 OrderDate.ViewCustomAttributes = "";
 
                 // Customer
-                Customer.ViewValue = ConvertToString(Customer.CurrentValue); // DN
+                if (!Empty(Customer.CurrentValue)) {
+                    Customer.ViewValue = Customer.HighlightLookup(ConvertToString(Customer.CurrentValue), Customer.OptionCaption(ConvertToString(Customer.CurrentValue)));
+                } else {
+                    Customer.ViewValue = DbNullValue;
+                }
                 Customer.ViewCustomAttributes = "";
 
                 // Address
                 Address.ViewValue = ConvertToString(Address.CurrentValue); // DN
                 Address.ViewCustomAttributes = "";
-
-                // ID
-                ID.HrefValue = "";
-                ID.TooltipValue = "";
 
                 // SalesOrder
                 SalesOrder.HrefValue = "";

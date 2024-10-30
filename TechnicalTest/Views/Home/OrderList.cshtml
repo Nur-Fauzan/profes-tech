@@ -156,20 +156,17 @@ loadjs.ready(["wrapper", "head"], function () {
 }
 @* Render list options (header, left) *@
 @orderList.ListOptions.RenderHeader("left")
-@if (orderList.ID.Visible) { // orderList.ID.Visible (begin)
-        <th data-name="ID" class="@(orderList.ID.HeaderCellClass)"><div id="elh_Order_ID" class="Order_ID">@Html.Raw(orderList.RenderFieldHeader(orderList.ID))</div></th>
-} @* orderList.ID.Visible (end) *@
 @if (orderList.SalesOrder.Visible) { // orderList.SalesOrder.Visible (begin)
-        <th data-name="SalesOrder" class="@(orderList.SalesOrder.HeaderCellClass)"><div id="elh_Order_SalesOrder" class="Order_SalesOrder">@Html.Raw(orderList.RenderFieldHeader(orderList.SalesOrder))</div></th>
+        <th data-name="SalesOrder" class="@(orderList.SalesOrder.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Order_SalesOrder" class="Order_SalesOrder">@Html.Raw(orderList.RenderFieldHeader(orderList.SalesOrder))</div></th>
 } @* orderList.SalesOrder.Visible (end) *@
 @if (orderList.OrderDate.Visible) { // orderList.OrderDate.Visible (begin)
-        <th data-name="OrderDate" class="@(orderList.OrderDate.HeaderCellClass)"><div id="elh_Order_OrderDate" class="Order_OrderDate">@Html.Raw(orderList.RenderFieldHeader(orderList.OrderDate))</div></th>
+        <th data-name="OrderDate" class="@(orderList.OrderDate.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Order_OrderDate" class="Order_OrderDate">@Html.Raw(orderList.RenderFieldHeader(orderList.OrderDate))</div></th>
 } @* orderList.OrderDate.Visible (end) *@
 @if (orderList.Customer.Visible) { // orderList.Customer.Visible (begin)
-        <th data-name="Customer" class="@(orderList.Customer.HeaderCellClass)"><div id="elh_Order_Customer" class="Order_Customer">@Html.Raw(orderList.RenderFieldHeader(orderList.Customer))</div></th>
+        <th data-name="Customer" class="@(orderList.Customer.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Order_Customer" class="Order_Customer">@Html.Raw(orderList.RenderFieldHeader(orderList.Customer))</div></th>
 } @* orderList.Customer.Visible (end) *@
 @if (orderList.Address.Visible) { // orderList.Address.Visible (begin)
-        <th data-name="Address" class="@(orderList.Address.HeaderCellClass)"><div id="elh_Order_Address" class="Order_Address">@Html.Raw(orderList.RenderFieldHeader(orderList.Address))</div></th>
+        <th data-name="Address" class="@(orderList.Address.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Order_Address" class="Order_Address">@Html.Raw(orderList.RenderFieldHeader(orderList.Address))</div></th>
 } @* orderList.Address.Visible (end) *@
 @* Render list options (header, right) *@
 @orderList.ListOptions.RenderHeader("right")
@@ -191,14 +188,6 @@ loadjs.ready(["wrapper", "head"], function () {
     <tr @Html.Raw(orderList.RowAttributes)>
     @* Render list options (body, left) *@
     @orderList.ListOptions.RenderBody("left", orderList.RowCount)
-    @if (orderList.ID.Visible) { // orderList.ID.Visible (begin)
-        <td data-name="ID" @Html.Raw(orderList.ID.CellAttributes)>
-<span id="el@(orderList.RowIndex == "$rowindex$" ? "$rowindex$" : orderList.RowCount)_Order_ID" class="el_Order_ID">
-<span @Html.Raw(orderList.ID.ViewAttributes)>
-@Html.Raw(orderList.ID.GetViewValue())</span>
-</span>
-</td>
-    } @* orderList.ID.Visible (end) *@
     @if (orderList.SalesOrder.Visible) { // orderList.SalesOrder.Visible (begin)
         <td data-name="SalesOrder" @Html.Raw(orderList.SalesOrder.CellAttributes)>
 <span id="el@(orderList.RowIndex == "$rowindex$" ? "$rowindex$" : orderList.RowCount)_Order_SalesOrder" class="el_Order_SalesOrder">

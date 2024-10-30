@@ -198,7 +198,7 @@ public partial class project1 {
         // Set field visibility
         public void SetVisibility()
         {
-            ID.SetVisibility();
+            ID.Visible = false;
             SalesOrder.SetVisibility();
             OrderDate.SetVisibility();
             Customer.SetVisibility();
@@ -523,6 +523,9 @@ public partial class project1 {
             if (UseAjaxActions)
                 InlineDelete = true;
 
+            // Set up lookup cache
+            await SetupLookupOptions(Customer);
+
             // Check modal
             if (IsModal)
                 SkipHeaderFooter = true;
@@ -602,6 +605,9 @@ public partial class project1 {
                 var keyValues = ConvertToString(k).Split('/');
                 ID.FormValue = ConvertToString(keyValues[0]);
             }
+
+            // Set up detail parameters
+            SetupDetailParms();
         }
 
         // Validate form if post back
@@ -624,10 +630,17 @@ public partial class project1 {
                                 FailureMessage = Language.Phrase("NoRecord"); // No record found
                             return Terminate("OrderList"); // No matching record, return to list
                         }
+
+                    // Set up detail parameters
+                    SetupDetailParms();
                     break;
                 case "update": // Update // DN
                     CloseRecordset(); // DN
-                    string returnUrl = ReturnUrl;
+                    string returnUrl = "";
+                    if (!Empty(CurrentDetailTable)) // Master/detail edit
+                        returnUrl = GetViewUrl(Config.TableShowDetail + "=" + CurrentDetailTable); // Master/Detail view page
+                    else
+                        returnUrl = ReturnUrl;
                     if (GetPageName(returnUrl) == "OrderList")
                         returnUrl = AddMasterUrl(ListUrl); // List page, return to List page with correct master key if necessary
                     SendEmail = true; // Send email on update success
@@ -659,6 +672,9 @@ public partial class project1 {
                     } else {
                         EventCancelled = true; // Event cancelled
                         RestoreFormValues(); // Restore form values if update failed
+
+                        // Set up detail parameters
+                        SetupDetailParms();
                     }
                     break;
             }
@@ -705,11 +721,6 @@ public partial class project1 {
             bool validate = !Config.ServerValidate;
             string val;
 
-            // Check field name 'ID' before field var 'x_ID'
-            val = CurrentForm.HasValue("ID") ? CurrentForm.GetValue("ID") : CurrentForm.GetValue("x_ID");
-            if (!ID.IsDetailKey)
-                ID.SetFormValue(val);
-
             // Check field name 'SalesOrder' before field var 'x_SalesOrder'
             val = CurrentForm.HasValue("SalesOrder") ? CurrentForm.GetValue("SalesOrder") : CurrentForm.GetValue("x_SalesOrder");
             if (!SalesOrder.IsDetailKey) {
@@ -746,6 +757,11 @@ public partial class project1 {
                 else
                     Address.SetFormValue(val);
             }
+
+            // Check field name 'ID' before field var 'x_ID'
+            val = CurrentForm.HasValue("ID") ? CurrentForm.GetValue("ID") : CurrentForm.GetValue("x_ID");
+            if (!ID.IsDetailKey)
+                ID.SetFormValue(val);
         }
         #pragma warning restore 1998
 
@@ -864,10 +880,6 @@ public partial class project1 {
 
             // View row
             if (RowType == RowType.View) {
-                // ID
-                ID.ViewValue = ID.CurrentValue;
-                ID.ViewCustomAttributes = "";
-
                 // SalesOrder
                 SalesOrder.ViewValue = ConvertToString(SalesOrder.CurrentValue); // DN
                 SalesOrder.ViewCustomAttributes = "";
@@ -878,15 +890,16 @@ public partial class project1 {
                 OrderDate.ViewCustomAttributes = "";
 
                 // Customer
-                Customer.ViewValue = ConvertToString(Customer.CurrentValue); // DN
+                if (!Empty(Customer.CurrentValue)) {
+                    Customer.ViewValue = Customer.HighlightLookup(ConvertToString(Customer.CurrentValue), Customer.OptionCaption(ConvertToString(Customer.CurrentValue)));
+                } else {
+                    Customer.ViewValue = DbNullValue;
+                }
                 Customer.ViewCustomAttributes = "";
 
                 // Address
                 Address.ViewValue = ConvertToString(Address.CurrentValue); // DN
                 Address.ViewCustomAttributes = "";
-
-                // ID
-                ID.HrefValue = "";
 
                 // SalesOrder
                 SalesOrder.HrefValue = "";
@@ -900,11 +913,6 @@ public partial class project1 {
                 // Address
                 Address.HrefValue = "";
             } else if (RowType == RowType.Edit) {
-                // ID
-                ID.SetupEditAttributes();
-                ID.EditValue = ID.CurrentValue;
-                ID.ViewCustomAttributes = "";
-
                 // SalesOrder
                 SalesOrder.SetupEditAttributes();
                 if (!SalesOrder.Raw)
@@ -919,9 +927,7 @@ public partial class project1 {
 
                 // Customer
                 Customer.SetupEditAttributes();
-                if (!Customer.Raw)
-                    Customer.CurrentValue = HtmlDecode(Customer.CurrentValue);
-                Customer.EditValue = HtmlEncode(Customer.CurrentValue);
+                Customer.EditValue = Customer.Options(true);
                 Customer.PlaceHolder = RemoveHtml(Customer.Caption);
 
                 // Address
@@ -932,9 +938,6 @@ public partial class project1 {
                 Address.PlaceHolder = RemoveHtml(Address.Caption);
 
                 // Edit refer script
-
-                // ID
-                ID.HrefValue = "";
 
                 // SalesOrder
                 SalesOrder.HrefValue = "";
@@ -964,11 +967,6 @@ public partial class project1 {
             if (!Config.ServerValidate)
                 return true;
             bool validateForm = true;
-            if (ID.Required) {
-                if (!ID.IsDetailKey && Empty(ID.FormValue)) {
-                    ID.AddErrorMessage(ConvertToString(ID.RequiredErrorMessage).Replace("%s", ID.Caption));
-                }
-            }
             if (SalesOrder.Required) {
                 if (!SalesOrder.IsDetailKey && Empty(SalesOrder.FormValue)) {
                     SalesOrder.AddErrorMessage(ConvertToString(SalesOrder.RequiredErrorMessage).Replace("%s", SalesOrder.Caption));
@@ -991,6 +989,14 @@ public partial class project1 {
                 if (!Address.IsDetailKey && Empty(Address.FormValue)) {
                     Address.AddErrorMessage(ConvertToString(Address.RequiredErrorMessage).Replace("%s", Address.Caption));
                 }
+            }
+
+            // Validate detail grid
+            var detailTblVar = CurrentDetailTables;
+            if (detailTblVar.Contains("Item") && item?.DetailEdit == true) {
+                itemGrid = Resolve("ItemGrid")!; // Get detail page object
+                if (itemGrid != null)
+                    validateForm = validateForm && await itemGrid.ValidateGridForm();
             }
 
             // Return validate result
@@ -1050,6 +1056,10 @@ public partial class project1 {
             // Update current values
             SetCurrentValues(rsnew);
 
+            // Begin transaction
+            if (!Empty(CurrentDetailTable) && UseTransaction)
+                Connection.BeginTrans();
+
             // Call Row Updating event
             bool updateRow = RowUpdating(rsold, rsnew);
             if (updateRow) {
@@ -1059,6 +1069,24 @@ public partial class project1 {
                     else
                         result = true;
                     if (result) {
+                    }
+
+                    // Update detail records
+                    var detailTblVar = CurrentDetailTables;
+                    if (detailTblVar.Contains("Item") && item?.DetailEdit == true && result) {
+                        itemGrid = Resolve("ItemGrid")!; // Get detail page object
+                        if (itemGrid != null) {
+                            result = await itemGrid.GridUpdate();
+                        }
+                    }
+
+                    // Commit/Rollback transaction
+                    if (!Empty(CurrentDetailTable) && UseTransaction) {
+                        if (result) {
+                            Connection.CommitTrans(); // Commit transaction
+                        } else {
+                            Connection.RollbackTrans(); // Rollback transaction
+                        }
                     }
                 } catch (Exception e) {
                     if (Config.Debug)
@@ -1095,6 +1123,34 @@ public partial class project1 {
                 return new JsonBoolResult(d, true);
             }
             return new JsonBoolResult(d, result);
+        }
+
+        // Set up detail parms based on QueryString
+        protected void SetupDetailParms() {
+            StringValues detailTblVar = "";
+            // Get the keys for master table
+            if (Query.TryGetValue(Config.TableShowDetail, out detailTblVar)) { // Do not use Get()
+                CurrentDetailTable = detailTblVar.ToString();
+            } else {
+                detailTblVar = CurrentDetailTable;
+            }
+            if (!Empty(detailTblVar)) {
+                var detailTblVars = detailTblVar.ToString().Split(',');
+                if (detailTblVars.Contains("Item")) {
+                    itemGrid = Resolve("ItemGrid")!;
+                    if (itemGrid?.DetailEdit ?? false) {
+                        itemGrid.CurrentMode = "edit";
+                        itemGrid.CurrentAction = "gridedit";
+
+                        // Save current master table to detail table
+                        itemGrid.CurrentMasterTable = TableVar;
+                        itemGrid.StartRecordNumber = 1;
+                        itemGrid.OrderID.IsDetailKey = true;
+                        itemGrid.OrderID.CurrentValue = ID.CurrentValue;
+                        itemGrid.OrderID.SessionValue = itemGrid.OrderID.CurrentValue;
+                    }
+                }
+            }
         }
 
         // Set up Breadcrumb

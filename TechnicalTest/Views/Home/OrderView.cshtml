@@ -68,16 +68,6 @@ loadjs.ready(["wrapper", "head"], function () {
 }
 <input type="hidden" name="modal" value="@ConvertToInt(orderView.IsModal)">
 <table class="@(orderView.TableClass)">
-@if (orderView.ID.Visible) { // orderView.ID.Visible (begin)
-    <tr id="r_ID" @Html.Raw(orderView.ID.RowAttributes)>
-        <td class="@(orderView.TableLeftColumnClass)"><span id="elh_Order_ID">@Html.Raw(orderView.ID.Caption)</span></td>
-        <td data-name="ID" @Html.Raw(orderView.ID.CellAttributes)>
-<span id="el_Order_ID">
-<span @Html.Raw(orderView.ID.ViewAttributes)>
-@Html.Raw(orderView.ID.GetViewValue())</span>
-</span></td>
-    </tr>
-} @* orderView.ID.Visible (end) *@
 @if (orderView.SalesOrder.Visible) { // orderView.SalesOrder.Visible (begin)
     <tr id="r_SalesOrder" @Html.Raw(orderView.SalesOrder.RowAttributes)>
         <td class="@(orderView.TableLeftColumnClass)"><span id="elh_Order_SalesOrder">@Html.Raw(orderView.SalesOrder.Caption)</span></td>
@@ -120,6 +110,13 @@ loadjs.ready(["wrapper", "head"], function () {
 } @* orderView.Address.Visible (end) *@
 </table>
 @{ orderView.CloseRecordset(); }
+@if (orderView.CurrentDetailTables.Contains("Item") && item.DetailView) {
+    if (!Empty(orderView.CurrentDetailTable)) {
+<h4 class="ew-detail-caption">@Html.Raw(Language.TablePhrase("Item", "TblCaption"))</h4>
+    }
+        @await Html.PartialAsync("ItemGrid")
+    View = this;
+}
 </form>
 </main>
 @orderView.ShowPageFooter()

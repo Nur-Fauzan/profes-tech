@@ -272,7 +272,7 @@ public partial class project1 {
             // Create token
             CreateToken();
             CurrentBreadcrumb = new ();
-            return Terminate("ItemList"); // Exit and go to default page
+            return Terminate("OrderList"); // Exit and go to default page
 
             // Set LoginStatus, Page Rendering and Page Render
             if (!IsApi() && !IsTerminated) {

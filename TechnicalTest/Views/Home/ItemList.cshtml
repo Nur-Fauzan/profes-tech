@@ -68,6 +68,13 @@ loadjs.ready("head", function() {
 }
 </div>
 }
+@if (!itemList.IsExport() || Config.ExportMasterRecord && itemList.IsExport("print")) {
+if (!Empty(itemList.DbMasterFilter) && itemList.CurrentMasterTable == "Order") {
+    if (itemList.MasterRecordExists) {
+        @await Html.PartialAsync("OrderMaster.cshtml")
+    }
+}
+}
 @if (!itemList.IsModal) {
 <form name="fItemsrch" id="fItemsrch" class="ew-form ew-ext-search-form" action="@AppPath(CurrentPageName())" novalidate autocomplete="off">
 <div id="fItemsrch_search_panel" class="mb-2 mb-sm-0 @(itemList.SearchPanelClass)"><!-- .ew-search-panel -->
@@ -141,6 +148,10 @@ loadjs.ready(["wrapper", "head"], function () {
 }
 @if (itemList.IsModal) {
 <input type="hidden" name="modal" value="1">
+}
+@if (itemList.CurrentMasterTable == "Order" && !Empty(itemList.CurrentAction)) {
+<input type="hidden" name="@(Config.TableShowMaster)" value="Order">
+<input type="hidden" name="fk_ID" value="@(HtmlEncode(itemList.OrderID.SessionValue))">
 }
 <div id="gmp_Item" class="card-body ew-grid-middle-panel @(itemList.TableContainerClass)" style="@(itemList.TableContainerStyle)">
 @if (itemList.TotalRecords > 0 || itemList.IsGridEdit || itemList.IsMultiEdit) {

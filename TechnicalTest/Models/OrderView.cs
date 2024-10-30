@@ -476,6 +476,9 @@ public partial class project1 {
             if (UseAjaxActions)
                 InlineDelete = true;
 
+            // Set up lookup cache
+            await SetupLookupOptions(Customer);
+
             // Check modal
             if (IsModal)
                 SkipHeaderFooter = true;
@@ -553,6 +556,9 @@ public partial class project1 {
             if (!IsExport())
                 SetupBreadcrumb();
 
+            // Set up detail parameters
+            SetupDetailParms();
+
             // Normal return
             if (IsApi()) // Get current record only
                 if (!IsExport())
@@ -601,15 +607,6 @@ public partial class project1 {
                 item.Body = "<a class=\"ew-action ew-edit\" title=\"" + editTitle + "\" data-caption=\"" + editTitle + "\" href=\"" + HtmlEncode(AppPath(EditUrl)) + "\">" + Language.Phrase("ViewPageEditLink") + "</a>";
                 item.Visible = EditUrl != "";
 
-            // Copy
-            item = option.Add("copy");
-            var copyTitle = Language.Phrase("ViewPageCopyLink", true);
-            if (IsModal) // Modal
-                item.Body = "<a class=\"ew-action ew-copy\" title=\"" + copyTitle + "\" data-caption=\"" + copyTitle + "\" data-ew-action=\"modal\" data-url=\"" + HtmlEncode(AppPath(CopyUrl)) + "\" data-btn=\"AddBtn\">" + Language.Phrase("ViewPageCopyLink") + "</a>";
-            else
-                item.Body = "<a class=\"ew-action ew-copy\" title=\"" + copyTitle + "\" data-caption=\"" + copyTitle + "\" href=\"" + HtmlEncode(AppPath(CopyUrl)) + "\">" + Language.Phrase("ViewPageCopyLink") + "</a>";
-                item.Visible = CopyUrl != "";
-
             // Delete
             item = option.Add("delete");
             string url = AppPath(DeleteUrl);
@@ -618,6 +615,82 @@ public partial class project1 {
                 " title=\"" + Language.Phrase("ViewPageDeleteLink", true) + "\" data-caption=\"" + Language.Phrase("ViewPageDeleteLink", true) +
                 "\" href=\"" + HtmlEncode(url) + "\">" + Language.Phrase("ViewPageDeleteLink") + "</a>";
             item.Visible = DeleteUrl != "";
+            string body = "";
+            option = options["detail"];
+            string detailTableLink = "";
+            string detailViewTblVar = "";
+            string detailCopyTblVar = "";
+            string detailEditTblVar = "";
+            dynamic? detailPage = null;
+            string detailFilter = "";
+
+            // "detail_Item"
+            item = option.Add("detail_Item");
+            body = Language.Phrase("ViewPageDetailLink") + Language.TablePhrase("Item", "TblCaption");
+            body = "<a class=\"btn btn-default btn-sm ew-row-link ew-detail\" data-action=\"list\" href=\"" + HtmlEncode(AppPath("ItemList?" + Config.TableShowMaster + "=Order&" + ForeignKeyUrl("fk_ID", ID.CurrentValue) + "")) + "\">" + body + "</a>";
+            links = "";
+            detailPage = Resolve("ItemGrid");
+            if (detailPage?.DetailView ?? false) {
+                links += "<li><a class=\"dropdown-item ew-row-link ew-detail-view\" data-action=\"view\" data-caption=\"" + Language.Phrase("MasterDetailViewLink", true) + "\" href=\"" + HtmlEncode(AppPath(GetViewUrl(Config.TableShowDetail + "=Item"))) + "\">" + Language.Phrase("MasterDetailViewLink", null) + "</a></li>";
+                if (!Empty(detailViewTblVar))
+                    detailViewTblVar += ",";
+                detailViewTblVar += "Item";
+            }
+            if (detailPage?.DetailEdit ?? false) {
+                links += "<li><a class=\"dropdown-item ew-row-link ew-detail-edit\" data-action=\"edit\" data-caption=\"" + Language.Phrase("MasterDetailEditLink", true) + "\" href=\"" + HtmlEncode(AppPath(GetEditUrl(Config.TableShowDetail + "=Item"))) + "\">" + Language.Phrase("MasterDetailEditLink", null) + "</a></li>";
+                if (!Empty(detailEditTblVar))
+                    detailEditTblVar += ",";
+                detailEditTblVar += "Item";
+            }
+            if (!Empty(links)) {
+                body += "<button type=\"button\" class=\"dropdown-toggle btn btn-default ew-detail\" data-bs-toggle=\"dropdown\"></button>";
+                body += "<ul class=\"dropdown-menu\">" + links + "</ul>";
+            } else {
+                body = Regex.Replace(body, @"\b\s+dropdown-toggle\b", "");
+            }
+            body = "<div class=\"btn-group btn-group-sm ew-btn-group\">" + body + "</div>";
+            item.Body = body;
+            item.Visible = true;
+            if (item.Visible) {
+                if (!Empty(detailTableLink))
+                    detailTableLink += ",";
+                detailTableLink += "Item";
+            }
+            if (ShowMultipleDetails)
+                item.Visible = false;
+
+            // Multiple details
+            if (ShowMultipleDetails) {
+                body = "<div class=\"btn-group btn-group-sm ew-btn-group\">";
+                links = "";
+                if (!Empty(detailViewTblVar)) {
+                    links += "<li><a class=\"dropdown-item ew-row-link ew-detail-view\" data-action=\"view\" data-caption=\"" + HtmlEncode(Language.Phrase("MasterDetailViewLink", true)) + "\" href=\"" + HtmlEncode(AppPath(GetViewUrl(Config.TableShowDetail + "=" + detailViewTblVar))) + "\">" + Language.Phrase("MasterDetailViewLink", null) + "</a></li>";
+                }
+                if (!Empty(detailEditTblVar)) {
+                    links += "<li><a class=\"dropdown-item ew-row-link ew-detail-edit\" data-action=\"edit\" data-caption=\"" + HtmlEncode(Language.Phrase("MasterDetailEditLink", true)) + "\" href=\"" + HtmlEncode(AppPath(GetEditUrl(Config.TableShowDetail + "=" + detailEditTblVar))) + "\">" + Language.Phrase("MasterDetailEditLink", null) + "</a></li>";
+                }
+                if (!Empty(detailCopyTblVar)) {
+                    links += "<li><a class=\"dropdown-item ew-row-link ew-detail-copy\" data-action=\"add\" data-caption=\"" + HtmlEncode(Language.Phrase("MasterDetailCopyLink", true)) + "\" href=\"" + HtmlEncode(AppPath(GetCopyUrl(Config.TableShowDetail + "=" + detailCopyTblVar))) + "\">" + Language.Phrase("MasterDetailCopyLink", null) + "</a></li>";
+                }
+                if (!Empty(links)) {
+                    body += "<button type=\"button\" class=\"dropdown-toggle btn btn-default btn-sm ew-master-detail\" title=\"" + HtmlEncode(Language.Phrase("MultipleMasterDetails", true)) + "\" data-bs-toggle=\"dropdown\">" + Language.Phrase("MultipleMasterDetails") + "</button>";
+                    body += "<ul class=\"dropdown-menu ew-dropdown-menu\">" + links + "</ul>";
+                }
+                body += "</div>";
+                // Multiple details
+                item = option.Add("details");
+                item.Body = body;
+            }
+
+            // Set up detail default
+            option = options["detail"];
+            options["detail"].DropDownButtonPhrase = "ButtonDetails";
+            var ar = detailTableLink.Split(',');
+            option.UseDropDownButton = (ar.Length > 1);
+            option.UseButtonGroup = true;
+            item = option.AddGroupOption();
+            item.Body = "";
+            item.Visible = false;
 
             // Set up action default
             option = options["action"];
@@ -710,10 +783,6 @@ public partial class project1 {
 
             // View row
             if (RowType == RowType.View) {
-                // ID
-                ID.ViewValue = ID.CurrentValue;
-                ID.ViewCustomAttributes = "";
-
                 // SalesOrder
                 SalesOrder.ViewValue = ConvertToString(SalesOrder.CurrentValue); // DN
                 SalesOrder.ViewCustomAttributes = "";
@@ -724,16 +793,16 @@ public partial class project1 {
                 OrderDate.ViewCustomAttributes = "";
 
                 // Customer
-                Customer.ViewValue = ConvertToString(Customer.CurrentValue); // DN
+                if (!Empty(Customer.CurrentValue)) {
+                    Customer.ViewValue = Customer.HighlightLookup(ConvertToString(Customer.CurrentValue), Customer.OptionCaption(ConvertToString(Customer.CurrentValue)));
+                } else {
+                    Customer.ViewValue = DbNullValue;
+                }
                 Customer.ViewCustomAttributes = "";
 
                 // Address
                 Address.ViewValue = ConvertToString(Address.CurrentValue); // DN
                 Address.ViewCustomAttributes = "";
-
-                // ID
-                ID.HrefValue = "";
-                ID.TooltipValue = "";
 
                 // SalesOrder
                 SalesOrder.HrefValue = "";
@@ -757,6 +826,33 @@ public partial class project1 {
                 RowRendered();
         }
         #pragma warning restore 1998
+
+        // Set up detail parms based on QueryString
+        protected void SetupDetailParms() {
+            StringValues detailTblVar = "";
+            // Get the keys for master table
+            if (Query.TryGetValue(Config.TableShowDetail, out detailTblVar)) { // Do not use Get()
+                CurrentDetailTable = detailTblVar.ToString();
+            } else {
+                detailTblVar = CurrentDetailTable;
+            }
+            if (!Empty(detailTblVar)) {
+                var detailTblVars = detailTblVar.ToString().Split(',');
+                if (detailTblVars.Contains("Item")) {
+                    itemGrid = Resolve("ItemGrid")!;
+                    if (itemGrid?.DetailView ?? false) {
+                        itemGrid.CurrentMode = "view";
+
+                        // Save current master table to detail table
+                        itemGrid.CurrentMasterTable = TableVar;
+                        itemGrid.StartRecordNumber = 1;
+                        itemGrid.OrderID.IsDetailKey = true;
+                        itemGrid.OrderID.CurrentValue = ID.CurrentValue;
+                        itemGrid.OrderID.SessionValue = itemGrid.OrderID.CurrentValue;
+                    }
+                }
+            }
+        }
 
         // Set up Breadcrumb
         protected void SetupBreadcrumb() {

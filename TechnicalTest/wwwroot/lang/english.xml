@@ -1155,7 +1155,7 @@
       <phrase id="menutext" value="Item" />
     </menu>
     <menu id="2">
-      <phrase id="menutext" value="Order" />
+      <phrase id="menutext" value="Sales Order" />
     </menu>
     <table id="item">
       <phrase id="tblcaption" value="Item" />
@@ -1176,7 +1176,7 @@
       </field>
     </table>
     <table id="order">
-      <phrase id="tblcaption" value="Order" />
+      <phrase id="tblcaption" value="Sales Order" />
       <field id="id">
         <phrase id="fldcaption" value="ID" />
       </field>
@@ -1188,6 +1188,12 @@
       </field>
       <field id="customer">
         <phrase id="fldcaption" value="Customer" />
+        <phrase id="fldtagvalue1" value="PROFES" />
+        <phrase id="fldtagcaption1" value="PROFES" />
+        <phrase id="fldtagvalue2" value="TITAN" />
+        <phrase id="fldtagcaption2" value="TITAN" />
+        <phrase id="fldtagvalue3" value="DIPS" />
+        <phrase id="fldtagcaption3" value="DIPS" />
       </field>
       <field id="address">
         <phrase id="fldcaption" value="Address" />

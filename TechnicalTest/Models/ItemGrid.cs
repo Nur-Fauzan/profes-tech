@@ -3,26 +3,21 @@ namespace ASPNETMaker2023.Models;
 // Partial class
 public partial class project1 {
     /// <summary>
-    /// itemList
+    /// itemGrid
     /// </summary>
-    public static ItemList itemList
+    public static ItemGrid itemGrid
     {
-        get => HttpData.Get<ItemList>("itemList")!;
-        set => HttpData["itemList"] = value;
+        get => HttpData.Get<ItemGrid>("itemGrid")!;
+        set => HttpData["itemGrid"] = value;
     }
 
     /// <summary>
     /// Page class for Item
     /// </summary>
-    public class ItemList : ItemListBase
+    public class ItemGrid : ItemGridBase
     {
         // Constructor
-        public ItemList(Controller controller) : base(controller)
-        {
-        }
-
-        // Constructor
-        public ItemList() : base()
+        public ItemGrid() : base()
         {
         }
     }
@@ -30,10 +25,10 @@ public partial class project1 {
     /// <summary>
     /// Page base class
     /// </summary>
-    public class ItemListBase : Item
+    public class ItemGridBase : Item
     {
         // Page ID
-        public string PageID = "list";
+        public string PageID = "grid";
 
         // Project ID
         public string ProjectID = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}";
@@ -42,13 +37,13 @@ public partial class project1 {
         public string TableName { get; set; } = "Item";
 
         // Page object name
-        public string PageObjName = "itemList";
+        public string PageObjName = "itemGrid";
 
         // Title
         public string? Title = null; // Title for <title> tag
 
         // Grid form hidden field names
-        public string FormName = "fItemlist";
+        public string FormName = "fItemgrid";
 
         public string FormActionName = "";
 
@@ -101,7 +96,7 @@ public partial class project1 {
         private string _pageUrl = "";
 
         // Constructor
-        public ItemListBase()
+        public ItemGridBase()
         {
             // CSS class name as context
             TableVar = "Item";
@@ -112,7 +107,10 @@ public partial class project1 {
             FormKeyCountName = Config.FormKeyCountName;
 
             // Initialize
-            CurrentPage = this;
+            FormActionName += "_" + FormName;
+            OldKeyName += "_" + FormName;
+            FormBlankRowName += "_" + FormName;
+            FormKeyCountName += "_" + FormName;
 
             // Table CSS class
             TableClass = "table table-bordered table-hover table-sm ew-table";
@@ -123,25 +121,7 @@ public partial class project1 {
 
             // Language object
             Language = ResolveLanguage();
-
-            // Table object (item)
-            if (item == null || item is Item)
-                item = this;
-
-            // Initialize URLs
             AddUrl = "ItemAdd";
-            InlineAddUrl = PageUrl + "action=add";
-            GridAddUrl = PageUrl + "action=gridadd";
-            GridEditUrl = PageUrl + "action=gridedit";
-            MultiEditUrl = PageUrl + "action=multiedit";
-            MultiDeleteUrl = "ItemDelete";
-            MultiUpdateUrl = "ItemUpdate";
-
-            // Start time
-            StartTime = Environment.TickCount;
-
-            // Debug message
-            LoadDebugMessage();
 
             // Open connection
             Conn = Connection; // DN
@@ -152,21 +132,6 @@ public partial class project1 {
                 UseDropDownButton = false,
                 DropDownButtonPhrase = "ButtonAddEdit",
                 UseButtonGroup = true
-            };
-
-            // Other options
-            OtherOptions["detail"] = new () { TagClassName = "ew-detail-option" };
-            OtherOptions["action"] = new () { TagClassName = "ew-action-option" };
-
-            // Column visibility
-            OtherOptions["column"] = new () {
-                TableVar = TableVar,
-                TagClassName = "ew-columns-option",
-                ButtonGroupClass = "ew-column-dropdown",
-                UseDropDownButton = true,
-                DropDownButtonPhrase = "Columns",
-                DropDownAutoClose = "outside",
-                UseButtonGroup = false
             };
         }
 
@@ -205,7 +170,7 @@ public partial class project1 {
         }
 
         // Page name
-        public string PageName => "ItemList";
+        public string PageName => "ItemGrid";
 
         // Page URL
         public string PageUrl
@@ -217,19 +182,6 @@ public partial class project1 {
                 return _pageUrl;
             }
         }
-
-        // Update URLs
-        public string InlineAddUrl = "";
-
-        public string GridAddUrl = "";
-
-        public string GridEditUrl = "";
-
-        public string MultiEditUrl = "";
-
-        public string MultiDeleteUrl = "";
-
-        public string MultiUpdateUrl = "";
 
         // Show Page Header
         public IHtmlContent ShowPageHeader()
@@ -271,12 +223,6 @@ public partial class project1 {
             OrderID.SetVisibility();
         }
 
-        // Constructor
-        public ItemListBase(Controller? controller = null): this() { // DN
-            if (controller != null)
-                Controller = controller;
-        }
-
         /// <summary>
         /// Terminate page
         /// </summary>
@@ -285,12 +231,8 @@ public partial class project1 {
         public override IActionResult Terminate(string url = "") { // DN
             if (_terminated) // DN
                 return new EmptyResult();
-
-            // Page Unload event
-            PageUnload();
-
-            // Global Page Unloaded event
-            PageUnloaded();
+            if (Empty(url))
+                return new EmptyResult();
             if (!IsApi())
                 PageRedirecting(ref url);
 
@@ -317,43 +259,11 @@ public partial class project1 {
                 if (!Config.Debug)
                     ResponseClear();
                 if (Response != null && !Response.HasStarted) {
-                    // Handle modal response (Assume return to modal for simplicity)
-                    if (IsModal) { // Show as modal
-                        var result = new Dictionary<string, string> { {"url", GetUrl(url)}, {"modal", "1"} };
-                        string pageName = GetPageName(url);
-                        if (pageName != ListUrl) { // Not List page
-                            result.Add("caption", GetModalCaption(pageName));
-                            result.Add("view", pageName == "ItemView" ? "1" : "0"); // If View page, no primary button
-                        } else { // List page
-                            // result.Add("list", PageID == "search" ? "1" : "0"); // Refresh List page if current page is Search page
-                            result.Add("error", FailureMessage); // List page should not be shown as modal => error
-                            ClearFailureMessage();
-                        }
-                        return Controller.Json(result);
-                    } else {
-                        SaveDebugMessage();
-                        return Controller.LocalRedirect(AppPath(url));
-                    }
+                    SaveDebugMessage();
+                    return Controller.LocalRedirect(AppPath(url));
                 }
             }
             return new EmptyResult();
-        }
-
-        /// <summary>
-        /// Run chart
-        /// </summary>
-        /// <param name="chartVar">Chart variable name</param>
-        /// <returns>Page result</returns>
-        public async Task<IActionResult> RunChart(string chartVar = "") { // DN
-            IActionResult res = await Run();
-            DbChart? chart = ChartByParam(chartVar);
-            if (!IsTerminated && chart != null) {
-                string chartClass = (chart.PageBreakType == "before") ? "ew-chart-bottom" : "ew-chart-top";
-                int chartWidth = Query.TryGetValue("width", out StringValues sv) ? ConvertToInt(sv) : -1;
-                int chartHeight = Query.TryGetValue("height", out StringValues sv2) ? ConvertToInt(sv2) : -1;
-                return Controller.Content(ConvertToString(await chart.Render(chartClass, chartWidth, chartHeight)), "text/html", Encoding.UTF8);
-            }
-            return res;
         }
 
         // Get all records from datareader
@@ -427,8 +337,6 @@ public partial class project1 {
                             string val = ConvertToString(value);
                             if (fld.DataType == DataType.Date && value is DateTime dt)
                                 val = dt.ToString("s");
-                            if (fld.DataType == DataType.Memo && fld.MemoMaxLength > 0 && !Empty(val))
-                                val = TruncateMemo(val, fld.MemoMaxLength, fld.TruncateMemoRemoveHtml);
                             row[key] = ConvertToString(val);
                         }
                     }
@@ -529,6 +437,13 @@ public partial class project1 {
 
         public int SelectedIndex = 0;
 
+        #pragma warning disable 169
+
+        public bool ShowOtherOptions = false;
+
+        private DatabaseConnectionBase<SqlConnection, SqlCommand, SqlDataReader, SqlDbType>? _connection;
+        #pragma warning restore 169
+
         public int DisplayRecords = 20; // Number of display records
 
         public int StartRecord;
@@ -587,12 +502,6 @@ public partial class project1 {
 
         public DbDataReader? Recordset;
 
-        public string TopContentClass = "ew-top";
-
-        public string MiddleContentClass = "ew-middle";
-
-        public string BottomContentClass = "ew-bottom";
-
         public List<string> RecordKeys = new ();
 
         public bool IsModal = false;
@@ -610,6 +519,17 @@ public partial class project1 {
             }
         }
 
+        #pragma warning disable 618
+        // Connection
+        public override DatabaseConnectionBase<SqlConnection, SqlCommand, SqlDataReader, SqlDbType> Connection
+        {
+            get {
+                _connection ??= GetConnection2(DbId);
+                return _connection;
+            }
+        }
+        #pragma warning restore 618
+
         /// <summary>
         /// Load recordset from filter
         /// <param name="filter">Record filter</param>
@@ -618,15 +538,6 @@ public partial class project1 {
         {
             // Set up list options
             await SetupListOptions();
-
-            // Search options
-            SetupSearchOptions();
-
-            // Other options
-            SetupOtherOptions();
-
-            // Set visibility
-            SetVisibility();
 
             // Load recordset
             TotalRecords = LoadRecordCount(filter);
@@ -647,10 +558,6 @@ public partial class project1 {
             MultiColumnListOptionsPosition = Config.MultiColumnListOptionsPosition;
             DashboardReport = DashboardReport || Param<bool>(Config.PageDashboard);
 
-            // Is modal
-            IsModal = Param<bool>("modal");
-            UseLayout = UseLayout && !IsModal;
-
             // Use layout
             if (!Empty(Param("layout")) && !Param<bool>("layout"))
                 UseLayout = false;
@@ -663,20 +570,9 @@ public partial class project1 {
             if (TableVar != "")
                 Security.LoadTablePermissions(TableVar);
 
-            // Get export parameters
-            string custom = "";
-            if (!Empty(Param("export"))) {
-                Export = Param("export");
-                custom = Param("custom");
-            } else {
-                ExportReturnUrl = CurrentUrl();
-            }
-            ExportType = Export; // Get export parameter, used in header
-            if (!Empty(ExportType))
-                SkipHeaderFooter = true;
-            if (!Empty(Export) && !SameText(Export, "print") && Empty(custom)) // No layout for export // DN
-                UseLayout = false;
-            CurrentAction = Param("action"); // Set up current action
+            // Create form object
+            CurrentForm ??= new ();
+            await CurrentForm.Init();
 
             // Get grid add count
             int gridaddcnt = Get<int>(Config.TableGridAddRowCount);
@@ -721,8 +617,8 @@ public partial class project1 {
             // Setup other options
             SetupOtherOptions();
 
-            // Set up custom action (compatible with old version)
-            ListActions.Add(CustomActions);
+            // Load default values for add
+            LoadDefaultValues();
 
             // Update form name to avoid conflict
             if (IsModal)
@@ -740,20 +636,11 @@ public partial class project1 {
             // Get command
             Command = Get("cmd").ToLower();
 
-            // Process list action first
-            var result = await ProcessListAction();
-            if (result is not EmptyResult) // Ajax request
-                return result;
-
             // Set up records per page
             SetupDisplayRecords();
 
             // Handle reset command
             ResetCommand();
-
-            // Set up Breadcrumb
-            if (!IsExport())
-                SetupBreadcrumb();
 
             // Hide list options
             if (IsExport()) {
@@ -766,47 +653,17 @@ public partial class project1 {
                 ListOptions.UseButtonGroup = false; // Disable button group
             }
 
-            // Hide options
-            if (IsExport() || !(Empty(CurrentAction) || IsSearch)) {
-                ExportOptions.HideAllOptions();
-                FilterOptions.HideAllOptions();
-                ImportOptions.HideAllOptions();
+            // Show grid delete link for grid add / grid edit
+            if (AllowAddDeleteRow) {
+                if (IsGridAdd || IsGridEdit) {
+                    var item = ListOptions["griddelete"];
+                    if (item != null)
+                        item.Visible = false;
+                }
             }
-
-            // Hide other options
-            if (IsExport()) {
-                foreach (var (key, value) in OtherOptions)
-                    value.HideAllOptions();
-            }
-
-            // Get default search criteria
-            AddFilter(ref DefaultSearchWhere, BasicSearchWhere(true));
-
-            // Get basic search values
-            LoadBasicSearchValues();
-
-            // Process filter list
-            var filterResult = await ProcessFilterList();
-            if (filterResult != null) {
-                // Clean output buffer
-                if (!Config.Debug)
-                    Response?.Clear();
-                return Controller.Json(filterResult);
-            }
-
-            // Restore search parms from Session if not searching / reset / export
-            if ((IsExport() || Command != "search" && Command != "reset" && Command != "resetall") && Command != "json" && CheckSearchParms())
-                RestoreSearchParms();
-
-            // Call Recordset SearchValidated event
-            RecordsetSearchValidated();
 
             // Set up sorting order
             SetupSortOrder();
-
-            // Get basic search criteria
-            if (!HasInvalidFields())
-                srchBasic = BasicSearchWhere();
 
             // Restore display records
             if (Command != "json" && (RecordsPerPage == -1 || RecordsPerPage > 0)) {
@@ -814,34 +671,6 @@ public partial class project1 {
             } else {
                 DisplayRecords = 20; // Load default
                 RecordsPerPage = DisplayRecords; // Save default to session
-            }
-
-            // Load search default if no existing search criteria
-            if (!CheckSearchParms() && Empty(query)) {
-                // Load basic search from default
-                BasicSearch.LoadDefault();
-                if (!Empty(BasicSearch.Keyword))
-                    srchBasic = BasicSearchWhere(); // Save to session
-            }
-
-            // Build search criteria
-            if (!Empty(query)) {
-                AddFilter(ref SearchWhere, query);
-            } else {
-                AddFilter(ref SearchWhere, srchAdvanced);
-                AddFilter(ref SearchWhere, srchBasic);
-            }
-
-            // Call Recordset Searching event
-            RecordsetSearching(ref SearchWhere);
-
-            // Save search criteria
-            if (Command == "search" && !RestoreSearch) {
-                SessionSearchWhere = SearchWhere; // Save to Session (rename as SessionSearchWhere property)
-                StartRecord = 1; // Reset start record counter
-                StartRecordNumber = StartRecord;
-            } else if (Command != "json" && Empty(query)) {
-                SearchWhere = SessionSearchWhere;
             }
 
             // Build filter
@@ -881,9 +710,16 @@ public partial class project1 {
             }
             Filter = ApplyUserIDFilters(filter);
             if (IsGridAdd) {
-                CurrentFilter = "0=1";
-                StartRecord = 1;
-                DisplayRecords = GridAddRowCount;
+                if (CurrentMode == "copy") {
+                    TotalRecords = await ListRecordCountAsync();
+                    Recordset = await LoadRecordset(StartRecord - 1, TotalRecords);
+                    StartRecord = 1;
+                    DisplayRecords = TotalRecords;
+                } else {
+                    CurrentFilter = "0=1";
+                    StartRecord = 1;
+                    DisplayRecords = GridAddRowCount;
+                }
                 TotalRecords = DisplayRecords;
                 StopRecord = DisplayRecords;
             } else if ((IsEdit || IsCopy || IsInlineInserted || IsInlineUpdated) && UseInfiniteScroll) { // Get current record only
@@ -907,44 +743,12 @@ public partial class project1 {
                 TotalRecords = await ListRecordCountAsync();
                 StopRecord = DisplayRecords;
                 StartRecord = 1;
-                if (DisplayRecords <= 0 || (IsExport() && ExportAll)) // Display all records
-                    DisplayRecords = TotalRecords;
-                if (!(IsExport() && ExportAll)) // Set up start record position
-                    SetupStartRecord();
+                DisplayRecords = TotalRecords; // Display all records
 
                 // Recordset
                 bool selectLimit = UseSelectLimit;
-
-                // Set up list action columns, must be before LoadRecordset // DN
-                foreach (var (key, act) in ListActions.Items.Where(kvp => kvp.Value.Allowed)) {
-                    if (act.Select == Config.ActionMultiple && ListOptions["checkbox"] is ListOption listOpt) { // Show checkbox column if multiple action
-                        listOpt.Visible = true;
-                    } else if (act.Select == Config.ActionSingle) { // Show list action column
-                            ListOptions["listactions"]?.SetVisible(true); // Set visible if any list action is allowed
-                    }
-                }
                 if (selectLimit)
                     Recordset = await LoadRecordset(StartRecord - 1, DisplayRecords);
-
-                // Set no record found message
-                if ((Empty(CurrentAction) || IsSearch) && TotalRecords == 0) {
-                    if (SearchWhere == "0=101")
-                        WarningMessage = Language.Phrase("EnterSearchCriteria");
-                    else
-                        WarningMessage = Language.Phrase("NoRecord");
-                }
-            }
-
-            // Search options
-            SetupSearchOptions();
-
-            // Set up search panel class
-            if (!Empty(SearchWhere)) {
-                if (!Empty(query)) { // Hide search panel if using QueryBuilder
-                    SearchPanelClass = RemoveClass(SearchPanelClass, "show");
-                } else {
-                    SearchPanelClass = AppendClass(SearchPanelClass, "show");
-                }
             }
 
             // API list action
@@ -981,9 +785,9 @@ public partial class project1 {
                 PageRendering();
 
                 // Page Render event
-                itemList?.PageRender();
+                itemGrid?.PageRender();
             }
-            return PageResult();
+            return new EmptyResult();
         }
         #pragma warning restore 219
 
@@ -1008,6 +812,122 @@ public partial class project1 {
                 StartRecord = 1;
                 StartRecordNumber = StartRecord;
             }
+        }
+
+        // Exit inline mode
+        protected void ClearInlineMode() {
+            LastAction = CurrentAction; // Save last action
+            CurrentAction = ""; // Clear action
+            Session[Config.SessionInlineMode] = ""; // Clear inline mode
+        }
+
+        // Switch to grid add mode
+        protected void GridAddMode() {
+            CurrentAction = "gridadd";
+            Session[Config.SessionInlineMode] = "gridadd"; // Enabled grid add
+            HideFieldsForAddEdit();
+        }
+
+        // Switch to grid edit mode
+        protected void GridEditMode() {
+            CurrentAction = "gridedit";
+            Session[Config.SessionInlineMode] = "gridedit"; // Enabled grid edit
+            HideFieldsForAddEdit();
+        }
+
+        // Perform update to grid
+        public async Task<bool> GridUpdate()
+        {
+            bool gridUpdate = true;
+
+            // Get old recordset
+            CurrentFilter = BuildKeyFilter();
+            if (Empty(CurrentFilter))
+                CurrentFilter = "0=1";
+            string sql = CurrentSql;
+            List<Dictionary<string, object>> rsold = await Connection.GetRowsAsync(sql);
+
+            // Call Grid Updating event
+            if (!GridUpdating(rsold)) {
+                if (Empty(FailureMessage))
+                    FailureMessage = Language.Phrase("GridEditCancelled"); // Set grid edit cancelled message
+                EventCancelled = true;
+                return false;
+            }
+            string wrkFilter = "";
+            string key = "";
+
+            // Update row index and get row key
+            CurrentForm?.ResetIndex();
+            int rowcnt = CurrentForm?.GetInt(FormKeyCountName) ?? 0;
+
+            // Load default values for emptyRow checking // DN
+            LoadDefaultValues();
+
+            // Update all rows based on key
+            try {
+                for (int rowindex = 1; rowindex <= rowcnt; rowindex++) {
+                    CurrentForm!.Index = rowindex;
+                    SetKey(CurrentForm.GetValue(OldKeyName));
+                    string rowaction = CurrentForm.GetValue(FormActionName);
+
+                    // Load all values and keys
+                    if (rowaction != "insertdelete" && rowaction != "hide") { // Skip insert then deleted rows / hidden rows for grid edit
+                        await LoadFormValues(); // Get form values
+                        if (Empty(rowaction) || rowaction == "edit" || rowaction == "delete") {
+                            gridUpdate = !Empty(OldKey); // Key must not be empty
+                        } else {
+                            gridUpdate = true;
+                        }
+
+                        // Skip empty row
+                        if (rowaction == "insert" && EmptyRow()) {
+                            // No action required
+                        } else if (gridUpdate) { // Validate form and insert/update/delete record
+                            if (rowaction == "delete") {
+                                CurrentFilter = GetRecordFilter();
+                                gridUpdate = await DeleteRows(); // Delete this row
+                            } else {
+                                if (rowaction == "insert") {
+                                    gridUpdate = await AddRow(); // Insert this row
+                                } else {
+                                    if (!Empty(OldKey)) {
+                                        SendEmail = false; // Do not send email on update success
+                                        gridUpdate = await EditRow(); // Update this row
+                                    }
+                                } // End update
+                                if (gridUpdate) // Get inserted or updated filter
+                                    AddFilter(ref wrkFilter, GetRecordFilter(), "OR");
+                            }
+                        }
+                        if (gridUpdate) {
+                            if (!Empty(key))
+                                key += ", ";
+                            key += OldKey;
+                        } else {
+                            EventCancelled = true;
+                            break;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                FailureMessage = e.Message;
+                gridUpdate = false;
+            }
+            if (gridUpdate) {
+                FilterForModalActions = wrkFilter;
+
+                // Get new recordset
+                List<Dictionary<string, object>> rsnew = await Connection.GetRowsAsync(sql, true); // Use main connection (faster) // DN
+
+                // Call Grid Updated event
+                GridUpdated(rsold, rsnew);
+                ClearInlineMode(); // Clear inline edit mode
+            } else {
+                if (Empty(FailureMessage))
+                    FailureMessage = Language.Phrase("UpdateFailed"); // Set update failed message
+            }
+            return gridUpdate;
         }
 
         // Build filter for all keys
@@ -1038,189 +958,186 @@ public partial class project1 {
             return wrkFilter;
         }
 
-        // Check if empty row
-        public bool EmptyRow() => false;
+        // Perform Grid Add
+        #pragma warning disable 168, 219
 
-        #pragma warning disable 162, 1998
-        // Get list of filters
-        public async Task<string> GetFilterList()
+        public async Task<bool> GridInsert()
         {
-            string filterList = "";
+            int addcnt = 0;
+            bool gridInsert = false;
 
-            // Initialize
-            var filters = new JObject(); // DN
-            filters.Merge(JObject.Parse(ID.AdvancedSearch.ToJson())); // Field ID
-            filters.Merge(JObject.Parse(ItemName.AdvancedSearch.ToJson())); // Field ItemName
-            filters.Merge(JObject.Parse(Qty.AdvancedSearch.ToJson())); // Field Qty
-            filters.Merge(JObject.Parse(Price.AdvancedSearch.ToJson())); // Field Price
-            filters.Merge(JObject.Parse(OrderID.AdvancedSearch.ToJson())); // Field OrderID
-            filters.Merge(JObject.Parse(BasicSearch.ToJson()));
-
-            // Return filter list in JSON
-            if (filters.HasValues)
-                filterList = "\"data\":" + filters.ToString();
-            return (filterList != "") ? "{" + filterList + "}" : "null";
-        }
-
-        // Process filter list
-        protected async Task<object?> ProcessFilterList() {
-            if (Post("cmd") == "resetfilter") {
-                RestoreFilterList();
-            }
-            return null;
-        }
-        #pragma warning restore 162, 1998
-
-        // Restore list of filters
-        protected bool RestoreFilterList() {
-            // Return if not reset filter
-            if (Post("cmd") != "resetfilter")
+            // Call Grid Inserting event
+            if (!GridInserting()) {
+                if (Empty(FailureMessage))
+                    FailureMessage = Language.Phrase("GridAddCancelled"); // Set grid add cancelled message
+                EventCancelled = true;
                 return false;
-            var filter = JsonConvert.DeserializeObject<Dictionary<string, string>>(Post("filter"));
-            Command = "search";
-            string? sv;
-
-            // Field ID
-            if (filter?.TryGetValue("x_ID", out sv) ?? false) {
-                ID.AdvancedSearch.SearchValue = sv;
-                ID.AdvancedSearch.SearchOperator = filter["z_ID"];
-                ID.AdvancedSearch.SearchCondition = filter["v_ID"];
-                ID.AdvancedSearch.SearchValue2 = filter["y_ID"];
-                ID.AdvancedSearch.SearchOperator2 = filter["w_ID"];
-                ID.AdvancedSearch.Save();
             }
 
-            // Field ItemName
-            if (filter?.TryGetValue("x_ItemName", out sv) ?? false) {
-                ItemName.AdvancedSearch.SearchValue = sv;
-                ItemName.AdvancedSearch.SearchOperator = filter["z_ItemName"];
-                ItemName.AdvancedSearch.SearchCondition = filter["v_ItemName"];
-                ItemName.AdvancedSearch.SearchValue2 = filter["y_ItemName"];
-                ItemName.AdvancedSearch.SearchOperator2 = filter["w_ItemName"];
-                ItemName.AdvancedSearch.Save();
-            }
+            // Init key filter
+            string wrkFilter = "";
+            string key = "";
 
-            // Field Qty
-            if (filter?.TryGetValue("x_Qty", out sv) ?? false) {
-                Qty.AdvancedSearch.SearchValue = sv;
-                Qty.AdvancedSearch.SearchOperator = filter["z_Qty"];
-                Qty.AdvancedSearch.SearchCondition = filter["v_Qty"];
-                Qty.AdvancedSearch.SearchValue2 = filter["y_Qty"];
-                Qty.AdvancedSearch.SearchOperator2 = filter["w_Qty"];
-                Qty.AdvancedSearch.Save();
-            }
+            // Get row count
+            CurrentForm?.ResetIndex();
+            int rowcnt = CurrentForm?.GetInt(FormKeyCountName) ?? 0;
 
-            // Field Price
-            if (filter?.TryGetValue("x_Price", out sv) ?? false) {
-                Price.AdvancedSearch.SearchValue = sv;
-                Price.AdvancedSearch.SearchOperator = filter["z_Price"];
-                Price.AdvancedSearch.SearchCondition = filter["v_Price"];
-                Price.AdvancedSearch.SearchValue2 = filter["y_Price"];
-                Price.AdvancedSearch.SearchOperator2 = filter["w_Price"];
-                Price.AdvancedSearch.Save();
-            }
+            // Load default values for emptyRow checking // DN
+            LoadDefaultValues();
 
-            // Field OrderID
-            if (filter?.TryGetValue("x_OrderID", out sv) ?? false) {
-                OrderID.AdvancedSearch.SearchValue = sv;
-                OrderID.AdvancedSearch.SearchOperator = filter["z_OrderID"];
-                OrderID.AdvancedSearch.SearchCondition = filter["v_OrderID"];
-                OrderID.AdvancedSearch.SearchValue2 = filter["y_OrderID"];
-                OrderID.AdvancedSearch.SearchOperator2 = filter["w_OrderID"];
-                OrderID.AdvancedSearch.Save();
+            // Insert all rows
+            try {
+                for (int rowindex = 1; rowindex <= rowcnt; rowindex++) {
+                    // Load current row values
+                    CurrentForm!.Index = rowindex;
+                    string rowaction = CurrentForm.GetValue(FormActionName);
+                    Dictionary<string, object>? rsold = null;
+                    if (!Empty(rowaction) && rowaction != "insert")
+                        continue; // Skip
+                    if (rowaction == "insert") {
+                        OldKey = CurrentForm.GetValue(OldKeyName);
+                        rsold = await LoadOldRecord(); // Load old record
+                    }
+                    await LoadFormValues(); // Get form values
+                    if (!EmptyRow()) {
+                        addcnt++;
+                        SendEmail = false; // Do not send email on insert success
+                        gridInsert = await AddRow(rsold); // Insert row (already validated by validateGridForm())
+                        if (gridInsert) {
+                            // Add filter for this record
+                            AddFilter(ref wrkFilter, GetRecordFilter(), "OR");
+                        } else {
+                            EventCancelled = true;
+                            break;
+                        }
+                    }
+                }
+                if (addcnt == 0) { // No record inserted
+                    ClearInlineMode(); // Clear grid add mode and return
+                    return true;
+                }
+            } catch (Exception e) {
+                FailureMessage = e.Message;
+                gridInsert = false;
             }
-            if (filter?.TryGetValue(Config.TableBasicSearch, out string? keyword) ?? false)
-                BasicSearch.SessionKeyword = keyword;
-            if (filter?.TryGetValue(Config.TableBasicSearchType, out string? type) ?? false)
-                BasicSearch.SessionType = type;
+            if (gridInsert) {
+                // Get new recordset
+                CurrentFilter = wrkFilter;
+                FilterForModalActions = wrkFilter;
+                string sql = CurrentSql;
+                List<Dictionary<string, object>> rsnew = await Connection.GetRowsAsync(sql, true); // Use main connection (faster) // DN
+
+                // Call Grid Inserted event
+                GridInserted(rsnew);
+                ClearInlineMode(); // Clear grid add mode
+            } else {
+                if (Empty(FailureMessage))
+                    FailureMessage = Language.Phrase("InsertFailed"); // Set insert failed message
+            }
+            return gridInsert;
+        }
+        #pragma warning restore 168, 219
+
+        // Check if empty row
+        public bool EmptyRow()
+        {
+            if (CurrentForm == null)
+                return true;
+            if (CurrentForm.HasValue("x_ID") && CurrentForm.HasValue("o_ID") && !SameString(ID.CurrentValue, ID.DefaultValue) &&
+            !(ID.IsForeignKey && CurrentMasterTable != "" && SameString(ID.CurrentValue, ID.SessionValue)))
+                return false;
+            if (CurrentForm.HasValue("x_ItemName") && CurrentForm.HasValue("o_ItemName") && !SameString(ItemName.CurrentValue, ItemName.DefaultValue) &&
+            !(ItemName.IsForeignKey && CurrentMasterTable != "" && SameString(ItemName.CurrentValue, ItemName.SessionValue)))
+                return false;
+            if (CurrentForm.HasValue("x_Qty") && CurrentForm.HasValue("o_Qty") && !SameString(Qty.CurrentValue, Qty.DefaultValue) &&
+            !(Qty.IsForeignKey && CurrentMasterTable != "" && SameString(Qty.CurrentValue, Qty.SessionValue)))
+                return false;
+            if (CurrentForm.HasValue("x_Price") && CurrentForm.HasValue("o_Price") && !SameString(Price.CurrentValue, Price.DefaultValue) &&
+            !(Price.IsForeignKey && CurrentMasterTable != "" && SameString(Price.CurrentValue, Price.SessionValue)))
+                return false;
+            if (CurrentForm.HasValue("x_OrderID") && CurrentForm.HasValue("o_OrderID") && !SameString(OrderID.CurrentValue, OrderID.DefaultValue) &&
+            !(OrderID.IsForeignKey && CurrentMasterTable != "" && SameString(OrderID.CurrentValue, OrderID.SessionValue)))
+                return false;
             return true;
         }
 
-        // Show list of filters
-        public void ShowFilterList()
+        // Validate grid form
+        public async Task<bool> ValidateGridForm()
         {
-            // Initialize
-            string filterList = "",
-                captionClass = IsExport("email") ? "ew-filter-caption-email" : "ew-filter-caption",
-                captionSuffix = IsExport("email") ? ": " : "";
-            if (!Empty(BasicSearch.Keyword))
-                filterList += "<div><span class=\"" + captionClass + "\">" + Language.Phrase("BasicSearchKeyword") + "</span>" + captionSuffix + BasicSearch.Keyword + "</div>";
+            // Get row count
+            CurrentForm?.ResetIndex();
+            int rowcnt = CurrentForm?.GetInt(FormKeyCountName) ?? 0;
 
-            // Show Filters
-            if (!Empty(filterList)) {
-                string message = "<div id=\"ew-filter-list\" class=\"callout callout-info d-table\"><div id=\"ew-current-filters\">" +
-                    Language.Phrase("CurrentFilters") + "</div>" + filterList + "</div>";
-                MessageShowing(ref message, "");
-                Write(message);
-            } else { // Output empty tag
-                Write("<div id=\"ew-filter-list\"></div>");
+            // Load default values for emptyRow checking
+            LoadDefaultValues();
+
+            // Validate all records
+            for (int rowindex = 1; rowindex <= rowcnt; rowindex++) {
+                // Load current row values
+                CurrentForm!.Index = rowindex;
+                string rowaction = CurrentForm.GetValue(FormActionName);
+                if (rowaction != "delete" && rowaction != "insertdelete" && rowaction != "hide") {
+                    await LoadFormValues(); // Get form values
+                    if (rowaction == "insert" && EmptyRow()) {
+                        // Ignore
+                    } else if (!await ValidateForm()) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // Get all form values of the grid
+        public List<Dictionary<string, string?>> GetGridFormValues()
+        {
+            // Get row count
+            CurrentForm?.ResetIndex();
+            int rowcnt = CurrentForm?.GetInt(FormKeyCountName) ?? 0;
+            List<Dictionary<string, string?>> rows = new ();
+
+            // Loop through all records
+            for (int rowindex = 1; rowindex <= rowcnt; rowindex++) {
+                // Load current row values
+                CurrentForm!.Index = rowindex;
+                string rowaction = CurrentForm.GetValue(FormActionName);
+                if (rowaction != "delete" && rowaction != "insertdelete") {
+                    LoadFormValues().GetAwaiter().GetResult(); // Load form values (sync)
+                    if (rowaction == "insert" && EmptyRow()) {
+                        // Ignore
+                    } else {
+                        rows.Add(GetFormValues()); // Return row as array
+                    }
+                }
+            }
+            return rows; // Return as array of array
+        }
+
+        // Restore form values for current row
+        public async Task RestoreCurrentRowFormValues(object index)
+        {
+            // Get row based on current index
+            if (index is int idx)
+                CurrentForm!.Index = idx;
+            string rowaction = CurrentForm.GetValue(FormActionName);
+            await LoadFormValues(); // Load form values
+            // Set up invalid status correctly
+            ResetFormError();
+            if (rowaction == "insert" && EmptyRow()) {
+                // Ignore
+            } else {
+                await ValidateForm();
             }
         }
 
-        // Return basic search WHERE clause based on search keyword and type
-        public string BasicSearchWhere(bool def = false) {
-            string searchStr = "";
-
-            // Fields to search
-            List<DbField> searchFlds = new ();
-            searchFlds.Add(ItemName);
-            searchFlds.Add(Price);
-            string searchKeyword = def ? BasicSearch.KeywordDefault : BasicSearch.Keyword;
-            string searchType = def ? BasicSearch.TypeDefault : BasicSearch.Type;
-
-            // Get search SQL
-            if (!Empty(searchKeyword)) {
-                List<string> list = BasicSearch.KeywordList(def);
-                searchStr = GetQuickSearchFilter(searchFlds, list, searchType, BasicSearch.BasicSearchAnyFields, DbId);
-                if (!def && (new[] {"", "reset", "resetall"}).Contains(Command))
-                    Command = "search";
-            }
-            if (!def && Command == "search") {
-                BasicSearch.SessionKeyword = searchKeyword;
-                BasicSearch.SessionType = searchType;
-
-                // Clear rules for QueryBuilder
-                SessionRules = "";
-            }
-            return searchStr;
-        }
-
-        // Check if search parm exists
-        protected bool CheckSearchParms() {
-            // Check basic search
-            if (BasicSearch.IssetSession)
-                return true;
-            return false;
-        }
-
-        // Clear all search parameters
-        protected void ResetSearchParms() {
-            SearchWhere = "";
-            SessionSearchWhere = SearchWhere;
-
-            // Clear basic search parameters
-            ResetBasicSearchParms();
-
-            // Clear queryBuilder
-            SessionRules = "";
-        }
-
-        // Load advanced search default values
-        protected bool LoadAdvancedSearchDefault() {
-        return false;
-        }
-
-        // Clear all basic search parameters
-        protected void ResetBasicSearchParms() {
-            BasicSearch.UnsetSession();
-        }
-
-        // Restore all search parameters
-        protected void RestoreSearchParms() {
-            RestoreSearch = true;
-
-            // Restore basic search values
-            BasicSearch.Load();
+        // Reset form status
+        public void ResetFormError()
+        {
+            ID.ClearErrorMessage();
+            ItemName.ClearErrorMessage();
+            Qty.ClearErrorMessage();
+            Price.ClearErrorMessage();
+            OrderID.ClearErrorMessage();
         }
 
         // Set up sort parameters
@@ -1236,11 +1153,6 @@ public partial class project1 {
             if (Get("order", out StringValues sv)) {
                 CurrentOrder = sv.ToString();
                 CurrentOrderType = Get("ordertype");
-                UpdateSort(ID); // ID
-                UpdateSort(ItemName); // ItemName
-                UpdateSort(Qty); // Qty
-                UpdateSort(Price); // Price
-                UpdateSort(OrderID); // OrderID
                 StartRecordNumber = 1; // Reset start position
             }
 
@@ -1257,10 +1169,6 @@ public partial class project1 {
         protected void ResetCommand() {
             // Get reset cmd
             if (Command.ToLower().StartsWith("reset")) {
-                // Reset search criteria
-                if (SameText(Command, "reset") || SameText(Command, "resetall"))
-                    ResetSearchParms();
-
                 // Reset master/detail keys
                 if (SameText(Command, "resetall")) {
                     CurrentMasterTable = ""; // Clear master table
@@ -1273,11 +1181,6 @@ public partial class project1 {
                 if (SameText(Command, "resetsort")) {
                     string orderBy = "";
                     SessionOrderBy = orderBy;
-                    ID.Sort = "";
-                    ItemName.Sort = "";
-                    Qty.Sort = "";
-                    Price.Sort = "";
-                    OrderID.Sort = "";
                 }
 
                 // Reset start position
@@ -1291,30 +1194,19 @@ public partial class project1 {
         protected async Task SetupListOptions() {
             ListOption item;
 
+            // "griddelete"
+            if (AllowAddDeleteRow) {
+                item = ListOptions.Add("griddelete");
+                item.CssClass = "text-nowrap";
+                item.OnLeft = false;
+                item.Visible = false; // Default hidden
+            }
+
             // Add group option item
             item = ListOptions.AddGroupOption();
             item.Body = "";
             item.OnLeft = false;
             item.Visible = false;
-
-            // List actions
-            item = ListOptions.Add("listactions");
-            item.CssClass = "text-nowrap";
-            item.OnLeft = false;
-            item.Visible = false;
-            item.ShowInButtonGroup = false;
-            item.ShowInDropDown = false;
-
-            // "checkbox"
-            item = ListOptions.Add("checkbox");
-            item.CssStyle = "white-space: nowrap; text-align: center; vertical-align: middle; margin: 0px;";
-            item.Visible = false;
-            item.OnLeft = false;
-            item.Header = "<div class=\"form-check\"><input type=\"checkbox\" name=\"key\" id=\"key\" class=\"form-check-input\" data-ew-action=\"select-all-keys\"></div>";
-            if (item.OnLeft)
-                item.MoveTo(0);
-            item.ShowInDropDown = false;
-            item.ShowInButtonGroup = false;
 
             // Drop down button for ListOptions
             ListOptions.UseDropDownButton = false;
@@ -1324,10 +1216,6 @@ public partial class project1 {
                 ListOptions.UseDropDownButton = true;
 
             //ListOptions.ButtonClass = ""; // Class for button group
-
-            // Call ListOptions Load event
-            ListOptionsLoad();
-            SetupListOptionsExt();
             ListOptions[ListOptions.GroupOptionName]?.SetVisible(ListOptions.GroupOptionVisible);
         }
         #pragma warning restore 1998
@@ -1355,36 +1243,37 @@ public partial class project1 {
             // Call ListOptions Rendering event
             ListOptionsRendering();
 
-            // Set up list action buttons
-            listOption = ListOptions["listactions"];
-            if (listOption != null && !IsExport() && CurrentAction == "") {
-                string body = "";
-                var links = new List<string>();
-                foreach (var (key, act) in ListActions.Items) {
-                    if (act.Select == Config.ActionSingle && act.Allowed) {
-                        var action = act.Action;
-                        string caption = act.Caption;
-                        var icon = (act.Icon != "") ? "<i class=\"" + HtmlEncode(act.Icon.Replace(" ew-icon", "")) + "\" data-caption=\"" + HtmlTitle(caption) + "\"></i> " : "";
-                        string link = "<li><button type=\"button\" class=\"dropdown-item ew-action ew-list-action\" data-caption=\"" + HtmlTitle(caption) + "\" data-ew-action=\"submit\" form=\"fItemlist\" data-key=\"" + KeyToJson(true) + "\"" + act.ToDataAttrs() + ">" + icon + " " + caption + "</button></li>";
-                        if (!Empty(link)) {
-                            links.Add(link);
-                            if (Empty(body)) // Setup first button
-                                body = "<button type=\"button\" class=\"btn btn-default ew-action ew-list-action\" title=\"" + HtmlTitle(caption) + "\" data-caption=\"" + HtmlTitle(caption) + "\" data-ew-action=\"submit\" form=\"fItemlist\" data-key=\"" + KeyToJson(true) + "\"" + act.ToDataAttrs() + ">" + icon + caption + "</button>";
-                        }
-                    }
+            // Set up row action and key
+            if (IsNumeric(RowIndex) && RowType != RowType.View) {
+                CurrentForm!.Index = ConvertToInt(RowIndex);
+                var actionName = FormActionName.Replace("k_", "k" + ConvertToString(RowIndex) + "_");
+                var oldKeyName = OldKeyName.Replace("k_", "k" + ConvertToString(RowIndex) + "_");
+                var blankRowName = FormBlankRowName.Replace("k_", "k" + ConvertToString(RowIndex) + "_");
+                if (!Empty(RowAction))
+                    MultiSelectKey += "<input type=\"hidden\" name=\"" + actionName + "\" id=\"" + actionName + "\" value=\"" + RowAction + "\">";
+                string oldKey = GetKey(false); // Get from OldValue
+                if (!Empty(oldKeyName) && !Empty(oldKey)) {
+                    MultiSelectKey += "<input type=\"hidden\" name=\"" + oldKeyName + "\" id=\"" + oldKeyName + "\" value=\"" + HtmlEncode(oldKey) + "\">";
                 }
-                if (links.Count > 1) { // More than one buttons, use dropdown
-                    body = "<button type=\"button\" class=\"dropdown-toggle btn btn-default ew-actions\" title=\"" + Language.Phrase("ListActionButton", true) + "\" data-bs-toggle=\"dropdown\">" + Language.Phrase("ListActionButton") + "</button>";
-                    string content = links.Aggregate("", (result, link) => result + "<li>" + link + "</li>");
-                    body += "<ul class=\"dropdown-menu" + (listOption?.OnLeft ?? false ? "" : " dropdown-menu-right") + "\">" + content + "</ul>";
-                    body = "<div class=\"btn-group btn-group-sm\">" + body + "</div>";
-                }
-                if (links.Count > 0)
-                    listOption?.SetBody(body);
+                if (RowAction == "insert" && IsConfirm && EmptyRow())
+                    MultiSelectKey += "<input type=\"hidden\" name=\"" + blankRowName + "\" id=\"" + blankRowName + "\" value=\"1\">";
             }
 
-            // "checkbox"
-            listOption = ListOptions["checkbox"];
+            // "delete"
+            if (AllowAddDeleteRow) {
+                if (CurrentMode == "add" || CurrentMode == "copy" || CurrentMode == "edit") {
+                    var options = ListOptions;
+                    options.UseButtonGroup = true; // Use button group for grid delete button
+                    listOption = options["griddelete"];
+                    if (IsNumeric(RowIndex) && (RowAction == "" || RowAction == "edit")) { // Do not allow delete existing record
+                        listOption?.SetBody("&nbsp;");
+                    } else {
+                        listOption?.SetBody("<a class=\"ew-grid-link ew-grid-delete\" title=\"" + Language.Phrase("DeleteLink", true) + "\" data-caption=\"" + Language.Phrase("DeleteLink", true) + "\" data-ew-action=\"delete-grid-row\" data-rowindex=\"" + RowIndex + "\">" + Language.Phrase("DeleteLink") + "</a>");
+                    }
+                }
+            }
+            if (CurrentMode == "view") { // View mode
+            } // End View mode
             RenderListOptionsExt();
 
             // Call ListOptions Rendered event
@@ -1400,50 +1289,12 @@ public partial class project1 {
         protected void SetupOtherOptions() {
             ListOptions option;
             ListOption item;
-            var options = OtherOptions;
-            option = options["action"];
-
-            // Show column list for column visibility
-            if (UseColumnVisibility) {
-                option = OtherOptions["column"];
-                item = option.AddGroupOption();
-                item.Body = "";
-                item.Visible = UseColumnVisibility;
-                CreateColumnOption(option.Add("ID")); // DN
-                CreateColumnOption(option.Add("ItemName")); // DN
-                CreateColumnOption(option.Add("Qty")); // DN
-                CreateColumnOption(option.Add("Price")); // DN
-                CreateColumnOption(option.Add("OrderID")); // DN
-            }
-
-            // Set up options default
-            foreach (var (key, opt) in options) {
-                if (key != "column") { // Always use dropdown for column
-                    opt.UseDropDownButton = false;
-                    opt.UseButtonGroup = true;
-                }
-                //opt.ButtonClass = ""; // Class for button group
-                item = opt.AddGroupOption();
-                item.Body = "";
-                item.Visible = false;
-            }
-            options["addedit"].DropDownButtonPhrase = "ButtonAddEdit";
-            options["detail"].DropDownButtonPhrase = "ButtonDetails";
-            options["action"].DropDownButtonPhrase = "ButtonActions";
-
-            // Filter button
-            item = FilterOptions.Add("savecurrentfilter");
-            item.Body = "<a class=\"ew-save-filter\" data-form=\"fItemsrch\" data-ew-action=\"none\">" + Language.Phrase("SaveCurrentFilter") + "</a>";
-            item.Visible = true;
-            item = FilterOptions.Add("deletefilter");
-            item.Body = "<a class=\"ew-delete-filter\" data-form=\"fItemsrch\" data-ew-action=\"none\">" + Language.Phrase("DeleteFilter") + "</a>";
-            item.Visible = true;
-            FilterOptions.UseDropDownButton = true;
-            FilterOptions.UseButtonGroup = !FilterOptions.UseDropDownButton;
-            FilterOptions.DropDownButtonPhrase = "Filters";
-
-            // Add group option item
-            item = FilterOptions.AddGroupOption();
+            option = OtherOptions["addedit"];
+            option.UseDropDownButton = false;
+            option.DropDownButtonPhrase = "ButtonAddEdit";
+            option.UseButtonGroup = true;
+            option.ButtonClass = ""; // Class for button group
+            item = option.AddGroupOption();
             item.Body = "";
             item.Visible = false;
         }
@@ -1466,120 +1317,35 @@ public partial class project1 {
             ListOptions option;
             ListOption? item;
             var options = OtherOptions;
-                option = options["action"];
-
-                // Set up list action buttons
-                foreach (var (key, act) in ListActions.Items.Where(kvp => kvp.Value.Select == Config.ActionMultiple)) {
-                    item = option.Add("custom_" + act.Action);
-                    string caption = act.Caption;
-                    var icon = (act.Icon != "") ? "<i class=\"" + HtmlEncode(act.Icon) + "\" data-caption=\"" + HtmlEncode(caption) + "\"></i>" + caption : caption;
-                    item.Body = "<<button type=\"button\" class=\"btn btn-default ew-action ew-list-action\" title=\"" + HtmlEncode(caption) + "\" data-caption=\"" + HtmlEncode(caption) + "\" data-ew-action=\"submit\" form=\"fItemlist\"" + act.ToDataAttrs() + ">" + icon + "</button>";
-                    item.Visible = act.Allowed;
+                if ((CurrentMode == "add" || CurrentMode == "copy" || CurrentMode == "edit") && !IsConfirm) { // Check add/copy/edit mode
+                    if (AllowAddDeleteRow) {
+                        option = options["addedit"];
+                        option.UseDropDownButton = false;
+                        item = option.Add("addblankrow");
+                        item.Body = "<a class=\"ew-add-edit ew-add-blank-row\" title=\"" + Language.Phrase("AddBlankRow", true) + "\" data-caption=\"" + Language.Phrase("AddBlankRow", true) + "\" data-ew-action=\"add-grid-row\">" + Language.Phrase("AddBlankRow") + "</a>";
+                        item.Visible = false;
+                        ShowOtherOptions = item.Visible;
+                    }
                 }
-
-                // Hide multi edit, grid edit and other options
-                if (TotalRecords <= 0) {
+                if (CurrentMode == "view") { // Check view mode
                     option = options["addedit"];
-                    option?["gridedit"]?.SetVisible(false);
-                    option = options["action"];
-                    option.HideAllOptions();
+                    item = option.GetItem("add");
+                    ShowOtherOptions = !Empty(item) && item.Visible;
                 }
-        }
-
-        // Process list action
-        public async Task<IActionResult> ProcessListAction()
-        {
-            string filter = GetFilterFromRecordKeys();
-            string userAction = Post("action");
-            if (filter != "" && userAction != "") {
-                // Check permission first
-                string actionCaption = userAction;
-                foreach (var (key, act) in ListActions.Items) {
-                    if (SameString(key, userAction)) {
-                        actionCaption = act.Caption;
-                        if (CustomActions.ContainsKey(userAction)) {
-                            UserAction = userAction;
-                            CurrentAction = "";
-                        }
-                        if (!act.Allowed) {
-                            string errmsg = Language.Phrase("CustomActionNotAllowed").Replace("%s", actionCaption);
-                            if (Post("ajax") == userAction) // Ajax
-                                return Controller.Content("<p class=\"text-danger\">" + errmsg + "</p>", "text/plain", Encoding.UTF8);
-                            else
-                                FailureMessage = errmsg;
-                            return new EmptyResult();
-                        }
-                    }
-                }
-                CurrentFilter = filter;
-                string sql = CurrentSql;
-                var rsuser = await Connection.GetRowsAsync(sql);
-                ActionValue = Post("actionvalue");
-
-                // Call row custom action event
-                if (rsuser != null) {
-                    if (UseTransaction)
-                        Connection.BeginTrans();
-                    bool processed = true;
-                    SelectedCount = rsuser.Count();
-                    SelectedIndex = 0;
-                    foreach (var row in rsuser) {
-                        SelectedIndex++;
-                        processed = RowCustomAction(userAction, row);
-                        if (!processed)
-                            break;
-                    }
-                    if (processed) {
-                        if (UseTransaction)
-                            Connection.CommitTrans(); // Commit the changes
-                        if (Empty(SuccessMessage))
-                            SuccessMessage = Language.Phrase("CustomActionCompleted").Replace("%s", actionCaption); // Set up success message
-                    } else {
-                        if (UseTransaction)
-                            Connection.RollbackTrans(); // Rollback changes
-
-                        // Set up error message
-                        if (!Empty(SuccessMessage) || !Empty(FailureMessage)) {
-                            // Use the message, do nothing
-                        } else if (!Empty(CancelMessage)) {
-                            FailureMessage = CancelMessage;
-                            CancelMessage = "";
-                        } else {
-                            FailureMessage = Language.Phrase("CustomActionFailed").Replace("%s", actionCaption);
-                        }
-                    }
-                }
-                CurrentAction = ""; // Clear action
-                if (Post("ajax") == userAction) { // Ajax
-                    if (ActionResult != null) // Action result set by Row CustomAction event // DN
-                        return ActionResult;
-                    string msg = "";
-                    if (SuccessMessage != "") {
-                        msg = "<p class=\"text-success\">" + SuccessMessage + "</p>";
-                        ClearSuccessMessage(); // Clear message
-                    }
-                    if (FailureMessage != "") {
-                        msg = "<p class=\"text-danger\">" + FailureMessage + "</p>";
-                        ClearFailureMessage(); // Clear message
-                    }
-                    if (!Empty(msg))
-                        return Controller.Content(msg, "text/plain", Encoding.UTF8);
-                }
-            }
-            return new EmptyResult(); // Not ajax request
         }
 
         // Set up Grid
         public async Task SetupGrid()
         {
-            if (ExportAll && IsExport()) {
-                StopRecord = TotalRecords;
-            } else {
-                // Set the last record to display
-                if (TotalRecords > StartRecord + DisplayRecords - 1) {
-                    StopRecord = StartRecord + DisplayRecords - 1;
-                } else {
-                    StopRecord = TotalRecords;
+            StartRecord = 1;
+            StopRecord = TotalRecords; // Show all records
+
+            // Restore number of post back records
+            if (CurrentForm != null && (IsConfirm || EventCancelled)) {
+                CurrentForm!.ResetIndex(); // DN
+                if (CurrentForm!.HasValue(FormKeyCountName) && (IsGridAdd || IsGridEdit || IsConfirm)) {
+                    KeyCount = CurrentForm.GetInt(FormKeyCountName);
+                    StopRecord = StartRecord + KeyCount - 1;
                 }
             }
             if (Recordset != null && Recordset.HasRows) {
@@ -1632,6 +1398,16 @@ public partial class project1 {
                     return;
                 }
             }
+            if (CurrentForm != null && (IsGridAdd || IsGridEdit || IsConfirm || IsMultiEdit)) {
+                RowIndex = ConvertToInt(RowIndex) + 1;
+                CurrentForm!.SetIndex(ConvertToInt(RowIndex));
+                if (CurrentForm!.HasValue(FormActionName) && (IsConfirm || EventCancelled))
+                    RowAction = CurrentForm.GetValue(FormActionName);
+                else if (IsGridAdd)
+                    RowAction = "insert";
+                else
+                    RowAction = "";
+            }
 
             // Set up key count
             KeyCount = ConvertToInt(RowIndex);
@@ -1639,25 +1415,36 @@ public partial class project1 {
             // Init row class and style
             ResetAttributes();
             CssClass = "";
-            if (IsCopy && InlineRowCount == 0 && !await LoadRow()) { // Inline copy
-                CurrentAction = "add";
-            }
-            if (IsAdd && InlineRowCount == 0 || IsGridAdd) {
-                await LoadRowValues(); // Load default values
-                OldKey = "";
-                SetKey(OldKey);
-            } else if (IsInlineInserted && UseInfiniteScroll) {
-                // Nothing to do, just use current values
-            } else if (!(IsCopy && InlineRowCount == 0)) {
-                await LoadRowValues(Recordset); // Load row values
-                if (IsGridEdit || IsMultiEdit) {
+            if (IsGridAdd) {
+                if (CurrentMode == "copy") {
+                    await LoadRowValues(Recordset); // Load row values
                     OldKey = GetKey(true); // Get from CurrentValue
-                    SetKey(OldKey);
+                } else {
+                    await LoadRowValues(); // Load default values
+                    OldKey = "";
                 }
+            } else {
+                await LoadRowValues(Recordset); // Load row values
+                OldKey = GetKey(true); // Get from CurrentValue
             }
+            SetKey(OldKey);
             RowType = RowType.View; // Render view
             if ((IsAdd || IsCopy) && InlineRowCount == 0 || IsGridAdd) // Add
                 RowType = RowType.Add; // Render add
+            if (IsGridAdd && EventCancelled && !CurrentForm!.HasValue(FormBlankRowName)) // Insert failed
+                await RestoreCurrentRowFormValues(RowIndex); // Restore form values
+            if (IsGridEdit) { // Grid edit
+                if (EventCancelled)
+                    await RestoreCurrentRowFormValues(RowIndex); // Restore form values
+                if (RowAction == "insert")
+                    RowType = RowType.Add; // Render add
+                else
+                    RowType = RowType.Edit; // Render edit
+            }
+            if (IsGridEdit && (RowType == RowType.Edit || RowType == RowType.Add) && EventCancelled) // Update failed
+                await RestoreCurrentRowFormValues(RowIndex); // Restore form values
+            if (IsConfirm) // Confirm row
+                await RestoreCurrentRowFormValues(RowIndex); // Restore form values
 
             // Inline Add/Copy row (row 0)
             if (RowType == RowType.Add && (IsAdd || IsCopy)) {
@@ -1673,12 +1460,12 @@ public partial class project1 {
             }
 
             // Set up row attributes
-            RowAttrs.Add("data-rowindex", ConvertToString(itemList.RowCount));
+            RowAttrs.Add("data-rowindex", ConvertToString(itemGrid.RowCount));
             RowAttrs.Add("data-key", GetKey(true));
-            RowAttrs.Add("id", "r" + ConvertToString(itemList.RowCount) + "_Item");
+            RowAttrs.Add("id", "r" + ConvertToString(itemGrid.RowCount) + "_Item");
             RowAttrs.Add("data-rowtype", ConvertToString((int)RowType));
-            RowAttrs.AppendClass(itemList.RowCount % 2 != 1 ? "ew-table-alt-row" : "");
-            if (IsAdd && itemList.RowType == RowType.Add || IsEdit && itemList.RowType == RowType.Edit) // Inline-Add/Edit row
+            RowAttrs.AppendClass(itemGrid.RowCount % 2 != 1 ? "ew-table-alt-row" : "");
+            if (IsAdd && itemGrid.RowType == RowType.Add || IsEdit && itemGrid.RowType == RowType.Edit) // Inline-Add/Edit row
                 RowAttrs.AppendClass("table-active");
 
             // Render row
@@ -1688,14 +1475,95 @@ public partial class project1 {
             await RenderListOptions();
         }
 
-        // Load basic search values // DN
-        protected void LoadBasicSearchValues() {
-            if (Get(Config.TableBasicSearch, out StringValues keyword))
-                BasicSearch.Keyword = keyword.ToString();
-            if (!Empty(BasicSearch.Keyword) && Empty(Command))
-                Command = "search";
-            if (Get(Config.TableBasicSearchType, out StringValues type))
-                BasicSearch.Type = type.ToString();
+        // Confirm page
+        public bool ConfirmPage = false; // DN
+
+        #pragma warning disable 1998
+        // Get upload files
+        public async Task GetUploadFiles()
+        {
+            // Get upload data
+        }
+        #pragma warning restore 1998
+
+        // Load default values
+        protected void LoadDefaultValues() {
+        }
+
+        #pragma warning disable 1998
+        // Load form values
+        protected async Task LoadFormValues() {
+            if (CurrentForm == null)
+                return;
+            CurrentForm.FormName = FormName;
+            bool validate = !Config.ServerValidate;
+            string val;
+
+            // Check field name 'ID' before field var 'x_ID'
+            val = CurrentForm.HasValue("ID") ? CurrentForm.GetValue("ID") : CurrentForm.GetValue("x_ID");
+            if (!ID.IsDetailKey) {
+                if (IsApi() && !CurrentForm.HasValue("ID") && !CurrentForm.HasValue("x_ID")) // DN
+                    ID.Visible = false; // Disable update for API request
+                else
+                    ID.SetFormValue(val, true, validate);
+            }
+            if (CurrentForm.HasValue("o_ID"))
+                ID.OldValue = CurrentForm.GetValue("o_ID");
+
+            // Check field name 'ItemName' before field var 'x_ItemName'
+            val = CurrentForm.HasValue("ItemName") ? CurrentForm.GetValue("ItemName") : CurrentForm.GetValue("x_ItemName");
+            if (!ItemName.IsDetailKey) {
+                if (IsApi() && !CurrentForm.HasValue("ItemName") && !CurrentForm.HasValue("x_ItemName")) // DN
+                    ItemName.Visible = false; // Disable update for API request
+                else
+                    ItemName.SetFormValue(val);
+            }
+            if (CurrentForm.HasValue("o_ItemName"))
+                ItemName.OldValue = CurrentForm.GetValue("o_ItemName");
+
+            // Check field name 'Qty' before field var 'x_Qty'
+            val = CurrentForm.HasValue("Qty") ? CurrentForm.GetValue("Qty") : CurrentForm.GetValue("x_Qty");
+            if (!Qty.IsDetailKey) {
+                if (IsApi() && !CurrentForm.HasValue("Qty") && !CurrentForm.HasValue("x_Qty")) // DN
+                    Qty.Visible = false; // Disable update for API request
+                else
+                    Qty.SetFormValue(val, true, validate);
+            }
+            if (CurrentForm.HasValue("o_Qty"))
+                Qty.OldValue = CurrentForm.GetValue("o_Qty");
+
+            // Check field name 'Price' before field var 'x_Price'
+            val = CurrentForm.HasValue("Price") ? CurrentForm.GetValue("Price") : CurrentForm.GetValue("x_Price");
+            if (!Price.IsDetailKey) {
+                if (IsApi() && !CurrentForm.HasValue("Price") && !CurrentForm.HasValue("x_Price")) // DN
+                    Price.Visible = false; // Disable update for API request
+                else
+                    Price.SetFormValue(val);
+            }
+            if (CurrentForm.HasValue("o_Price"))
+                Price.OldValue = CurrentForm.GetValue("o_Price");
+
+            // Check field name 'OrderID' before field var 'x_OrderID'
+            val = CurrentForm.HasValue("OrderID") ? CurrentForm.GetValue("OrderID") : CurrentForm.GetValue("x_OrderID");
+            if (!OrderID.IsDetailKey) {
+                if (IsApi() && !CurrentForm.HasValue("OrderID") && !CurrentForm.HasValue("x_OrderID")) // DN
+                    OrderID.Visible = false; // Disable update for API request
+                else
+                    OrderID.SetFormValue(val, true, validate);
+            }
+            if (CurrentForm.HasValue("o_OrderID"))
+                OrderID.OldValue = CurrentForm.GetValue("o_OrderID");
+        }
+        #pragma warning restore 1998
+
+        // Restore form values
+        public void RestoreFormValues()
+        {
+            ID.CurrentValue = ID.FormValue;
+            ItemName.CurrentValue = ItemName.FormValue;
+            Qty.CurrentValue = Qty.FormValue;
+            Price.CurrentValue = Price.FormValue;
+            OrderID.CurrentValue = OrderID.FormValue;
         }
 
         // Load recordset // DN
@@ -1853,7 +1721,135 @@ public partial class project1 {
                 // OrderID
                 OrderID.HrefValue = "";
                 OrderID.TooltipValue = "";
+            } else if (RowType == RowType.Add) {
+                // ID
+                ID.SetupEditAttributes();
+                ID.EditValue = ID.CurrentValue; // DN
+                ID.PlaceHolder = RemoveHtml(ID.Caption);
+                if (!Empty(ID.EditValue) && IsNumeric(ID.EditValue)) {
+                    ID.EditValue = FormatNumber(ID.EditValue, null);
+                }
+
+                // ItemName
+                ItemName.SetupEditAttributes();
+                if (!ItemName.Raw)
+                    ItemName.CurrentValue = HtmlDecode(ItemName.CurrentValue);
+                ItemName.EditValue = HtmlEncode(ItemName.CurrentValue);
+                ItemName.PlaceHolder = RemoveHtml(ItemName.Caption);
+
+                // Qty
+                Qty.SetupEditAttributes();
+                Qty.EditValue = Qty.CurrentValue; // DN
+                Qty.PlaceHolder = RemoveHtml(Qty.Caption);
+                if (!Empty(Qty.EditValue) && IsNumeric(Qty.EditValue)) {
+                    Qty.EditValue = FormatNumber(Qty.EditValue, null);
+                }
+
+                // Price
+                Price.SetupEditAttributes();
+                if (!Price.Raw)
+                    Price.CurrentValue = HtmlDecode(Price.CurrentValue);
+                Price.EditValue = HtmlEncode(Price.CurrentValue);
+                Price.PlaceHolder = RemoveHtml(Price.Caption);
+
+                // OrderID
+                OrderID.SetupEditAttributes();
+                if (!Empty(OrderID.SessionValue)) {
+                    OrderID.CurrentValue = ForeignKeyValue(OrderID.SessionValue);
+                    OrderID.OldValue = OrderID.CurrentValue;
+                    OrderID.ViewValue = OrderID.CurrentValue;
+                    OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
+                    OrderID.ViewCustomAttributes = "";
+                } else {
+                    OrderID.EditValue = OrderID.CurrentValue; // DN
+                    OrderID.PlaceHolder = RemoveHtml(OrderID.Caption);
+                    if (!Empty(OrderID.EditValue) && IsNumeric(OrderID.EditValue)) {
+                        OrderID.EditValue = FormatNumber(OrderID.EditValue, null);
+                    }
+                }
+
+                // Add refer script
+
+                // ID
+                ID.HrefValue = "";
+
+                // ItemName
+                ItemName.HrefValue = "";
+
+                // Qty
+                Qty.HrefValue = "";
+
+                // Price
+                Price.HrefValue = "";
+
+                // OrderID
+                OrderID.HrefValue = "";
+            } else if (RowType == RowType.Edit) {
+                // ID
+                ID.SetupEditAttributes();
+                ID.EditValue = ID.CurrentValue; // DN
+                ID.PlaceHolder = RemoveHtml(ID.Caption);
+                if (!Empty(ID.EditValue) && IsNumeric(ID.EditValue)) {
+                    ID.EditValue = FormatNumber(ID.EditValue, null);
+                }
+
+                // ItemName
+                ItemName.SetupEditAttributes();
+                if (!ItemName.Raw)
+                    ItemName.CurrentValue = HtmlDecode(ItemName.CurrentValue);
+                ItemName.EditValue = HtmlEncode(ItemName.CurrentValue);
+                ItemName.PlaceHolder = RemoveHtml(ItemName.Caption);
+
+                // Qty
+                Qty.SetupEditAttributes();
+                Qty.EditValue = Qty.CurrentValue; // DN
+                Qty.PlaceHolder = RemoveHtml(Qty.Caption);
+                if (!Empty(Qty.EditValue) && IsNumeric(Qty.EditValue)) {
+                    Qty.EditValue = FormatNumber(Qty.EditValue, null);
+                }
+
+                // Price
+                Price.SetupEditAttributes();
+                if (!Price.Raw)
+                    Price.CurrentValue = HtmlDecode(Price.CurrentValue);
+                Price.EditValue = HtmlEncode(Price.CurrentValue);
+                Price.PlaceHolder = RemoveHtml(Price.Caption);
+
+                // OrderID
+                OrderID.SetupEditAttributes();
+                if (!Empty(OrderID.SessionValue)) {
+                    OrderID.CurrentValue = ForeignKeyValue(OrderID.SessionValue);
+                    OrderID.OldValue = OrderID.CurrentValue;
+                    OrderID.ViewValue = OrderID.CurrentValue;
+                    OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
+                    OrderID.ViewCustomAttributes = "";
+                } else {
+                    OrderID.EditValue = OrderID.CurrentValue; // DN
+                    OrderID.PlaceHolder = RemoveHtml(OrderID.Caption);
+                    if (!Empty(OrderID.EditValue) && IsNumeric(OrderID.EditValue)) {
+                        OrderID.EditValue = FormatNumber(OrderID.EditValue, null);
+                    }
+                }
+
+                // Edit refer script
+
+                // ID
+                ID.HrefValue = "";
+
+                // ItemName
+                ItemName.HrefValue = "";
+
+                // Qty
+                Qty.HrefValue = "";
+
+                // Price
+                Price.HrefValue = "";
+
+                // OrderID
+                OrderID.HrefValue = "";
             }
+            if (RowType == RowType.Add || RowType == RowType.Edit || RowType == RowType.Search) // Add/Edit/Search row
+                SetupFieldTitles();
 
             // Call Row Rendered event
             if (RowType != RowType.AggregateInit)
@@ -1861,133 +1857,342 @@ public partial class project1 {
         }
         #pragma warning restore 1998
 
-        // Set up search options
-        protected void SetupSearchOptions() {
-            ListOption item;
+        #pragma warning disable 1998
+        // Validate form
+        protected async Task<bool> ValidateForm() {
+            // Check if validation required
+            if (!Config.ServerValidate)
+                return true;
+            bool validateForm = true;
+            if (ID.Required) {
+                if (!ID.IsDetailKey && Empty(ID.FormValue)) {
+                    ID.AddErrorMessage(ConvertToString(ID.RequiredErrorMessage).Replace("%s", ID.Caption));
+                }
+            }
+            if (!CheckInteger(ID.FormValue)) {
+                ID.AddErrorMessage(ID.GetErrorMessage(false));
+            }
+            if (ItemName.Required) {
+                if (!ItemName.IsDetailKey && Empty(ItemName.FormValue)) {
+                    ItemName.AddErrorMessage(ConvertToString(ItemName.RequiredErrorMessage).Replace("%s", ItemName.Caption));
+                }
+            }
+            if (Qty.Required) {
+                if (!Qty.IsDetailKey && Empty(Qty.FormValue)) {
+                    Qty.AddErrorMessage(ConvertToString(Qty.RequiredErrorMessage).Replace("%s", Qty.Caption));
+                }
+            }
+            if (!CheckInteger(Qty.FormValue)) {
+                Qty.AddErrorMessage(Qty.GetErrorMessage(false));
+            }
+            if (Price.Required) {
+                if (!Price.IsDetailKey && Empty(Price.FormValue)) {
+                    Price.AddErrorMessage(ConvertToString(Price.RequiredErrorMessage).Replace("%s", Price.Caption));
+                }
+            }
+            if (OrderID.Required) {
+                if (!OrderID.IsDetailKey && Empty(OrderID.FormValue)) {
+                    OrderID.AddErrorMessage(ConvertToString(OrderID.RequiredErrorMessage).Replace("%s", OrderID.Caption));
+                }
+            }
+            if (!CheckInteger(OrderID.FormValue)) {
+                OrderID.AddErrorMessage(OrderID.GetErrorMessage(false));
+            }
 
-            // Search button
-            item = SearchOptions.Add("searchtoggle");
-            var searchToggleClass = !Empty(SearchWhere) ? " active" : " active";
-            item.Body = "<a class=\"btn btn-default ew-search-toggle" + searchToggleClass + "\" role=\"button\" title=\"" + Language.Phrase("SearchPanel") + "\" data-caption=\"" + Language.Phrase("SearchPanel") + "\" data-ew-action=\"search-toggle\" data-form=\"fItemsrch\" aria-pressed=\"" + (searchToggleClass == " active" ? "true" : "false") + "\">" + Language.Phrase("SearchLink") + "</a>";
-            item.Visible = true;
+            // Return validate result
+            validateForm = validateForm && !HasInvalidFields();
 
-            // Show all button
-            item = SearchOptions.Add("showall");
-            if (UseCustomTemplate || !UseAjaxActions)
-                item.Body = "<a class=\"btn btn-default ew-show-all\" role=\"button\" title=\"" + Language.Phrase("ShowAll") + "\" data-caption=\"" + Language.Phrase("ShowAll") + "\" href=\"" + AppPath(PageUrl) + "cmd=reset\">" + Language.Phrase("ShowAllBtn") + "</a>";
-            else
-                item.Body = "<a class=\"btn btn-default ew-show-all\" role=\"button\" title=\"" + Language.Phrase("ShowAll") + "\" data-caption=\"" + Language.Phrase("ShowAll") + "\" data-ew-action=\"refresh\" data-url=\"" + AppPath(PageUrl) + "cmd=reset\">" + Language.Phrase("ShowAllBtn") + "</a>";
-            item.Visible = (SearchWhere != DefaultSearchWhere && SearchWhere != "0=101");
+            // Call Form CustomValidate event
+            string formCustomError = "";
+            validateForm = validateForm && FormCustomValidate(ref formCustomError);
+            if (!Empty(formCustomError))
+                FailureMessage = formCustomError;
+            return validateForm;
+        }
+        #pragma warning restore 1998
 
-            // Button group for search
-            SearchOptions.UseDropDownButton = false;
-            SearchOptions.UseButtonGroup = true;
-            SearchOptions.DropDownButtonPhrase = "ButtonSearch";
+        // Delete records (based on current filter)
+        protected async Task<JsonBoolResult> DeleteRows() { // DN
+            List<Dictionary<string, object>>? rsold = null;
+            bool result = true;
+            try {
+                string sql = CurrentSql;
+                using var rs = await Connection.GetDataReaderAsync(sql);
+                if (rs == null) {
+                    return JsonBoolResult.FalseResult;
+                } else if (!rs.HasRows) {
+                    FailureMessage = Language.Phrase("NoRecord"); // No record found
+                    return JsonBoolResult.FalseResult;
+                } else { // Clone old rows
+                    rsold = await Connection.GetRowsAsync(rs);
+                }
+            } catch (Exception e) {
+                if (Config.Debug)
+                    throw;
+                FailureMessage = e.Message;
+                return JsonBoolResult.FalseResult;
+            }
+            List<string> successKeys = new (), failKeys = new ();
+            try {
+                // Call Row Deleting event
+                if (result)
+                    result = rsold.All(row => RowDeleting(row));
+                if (result) {
+                    foreach (var row in rsold) {
+                        try {
+                            result = await DeleteAsync(row) > 0;
+                        } catch (Exception e) {
+                            if (Config.Debug)
+                                throw;
+                            FailureMessage = e.Message; // Set up error message
+                            result = false;
+                        }
+                        if (!result) {
+                            if (UseTransaction) {
+                                successKeys.Clear();
+                                break;
+                            }
+                            failKeys.Add(GetKey(row)); // DN
+                        } else {
+                            if (Config.DeleteUploadFiles)
+                                DeleteUploadedFiles(row);
+                            RowDeleted(row);
+                            successKeys.Add(GetKey(row)); // DN
+                        }
+                    }
+                }
+                result = successKeys.Count > 0;
+                if (!result) {
+                    // Set up error message
+                    if (!Empty(SuccessMessage) || !Empty(FailureMessage)) {
+                        // Use the message, do nothing
+                    } else if (!Empty(CancelMessage)) {
+                        FailureMessage = CancelMessage;
+                        CancelMessage = "";
+                    } else {
+                        FailureMessage = Language.Phrase("DeleteCancelled");
+                    }
+                }
+            } catch (Exception e) {
+                FailureMessage = e.Message;
+                result = false;
+            }
 
-            // Add group option item
-            item = SearchOptions.AddGroupOption();
-            item.Body = "";
-            item.Visible = false;
-
-            // Hide search options
-            if (IsExport() || !Empty(CurrentAction) && CurrentAction != "search")
-                SearchOptions.HideAllOptions();
+            // Write JSON for API request
+            Dictionary<string, object> d = new ();
+            d.Add("success", result);
+            if (IsJsonResponse() && result) {
+                var rows = await GetRecordsFromRecordset(rsold);
+                string table = TableVar;
+                d.Add(table, RouteValues.Count > 2 && rows.Count == 1 ? rows[0] : rows); // If single-delete, route values are controller/action/id (count > 2)
+                d.Add("action", Config.ApiDeleteAction);
+                d.Add("version", Config.ProductVersion);
+                return new JsonBoolResult(d, true);
+            }
+            return new JsonBoolResult(d, result);
         }
 
-        // Check if any search fields
-        public bool HasSearchFields()
-        {
-            return true;
+        // Update record based on key values
+        #pragma warning disable 168, 219
+
+        protected async Task<JsonBoolResult> EditRow() { // DN
+            bool result = false;
+            Dictionary<string, object> rsold;
+            string oldKeyFilter = GetRecordFilter();
+            string filter = ApplyUserIDFilters(oldKeyFilter);
+
+            // Load old row
+            CurrentFilter = filter;
+            string sql = CurrentSql;
+            try {
+                using var rsedit = await Connection.GetDataReaderAsync(sql);
+                if (rsedit == null || !await rsedit.ReadAsync()) {
+                    FailureMessage = Language.Phrase("NoRecord"); // Set no record message
+                    return JsonBoolResult.FalseResult;
+                }
+                rsold = Connection.GetRow(rsedit);
+                LoadDbValues(rsold);
+            } catch (Exception e) {
+                if (Config.Debug)
+                    throw;
+                FailureMessage = e.Message;
+                return JsonBoolResult.FalseResult;
+            }
+
+            // Set new row
+            Dictionary<string, object> rsnew = new ();
+
+            // ID
+            ID.SetDbValue(rsnew, ID.CurrentValue, ID.ReadOnly);
+
+            // ItemName
+            ItemName.SetDbValue(rsnew, ItemName.CurrentValue, ItemName.ReadOnly);
+
+            // Qty
+            Qty.SetDbValue(rsnew, Qty.CurrentValue, Qty.ReadOnly);
+
+            // Price
+            Price.SetDbValue(rsnew, Price.CurrentValue, Price.ReadOnly);
+
+            // OrderID
+            if (!Empty(OrderID.SessionValue))
+                OrderID.ReadOnly = true;
+            OrderID.SetDbValue(rsnew, OrderID.CurrentValue, OrderID.ReadOnly);
+
+            // Update current values
+            SetCurrentValues(rsnew);
+            bool validMasterRecord;
+            object keyValue;
+            object? v;
+            string? masterFilter;
+            Dictionary<string, object?> detailKeys;
+
+            // Call Row Updating event
+            bool updateRow = RowUpdating(rsold, rsnew);
+            if (updateRow) {
+                try {
+                    if (rsnew.Count > 0)
+                        result = await UpdateAsync(rsnew, null, rsold) > 0;
+                    else
+                        result = true;
+                    if (result) {
+                    }
+                } catch (Exception e) {
+                    if (Config.Debug)
+                        throw;
+                    FailureMessage = e.Message;
+                    return JsonBoolResult.FalseResult;
+                }
+            } else {
+                if (!Empty(SuccessMessage) || !Empty(FailureMessage)) {
+                    // Use the message, do nothing
+                } else if (!Empty(CancelMessage)) {
+                    FailureMessage = CancelMessage;
+                    CancelMessage = "";
+                } else {
+                    FailureMessage = Language.Phrase("UpdateCancelled");
+                }
+                result = false;
+            }
+
+            // Call Row Updated event
+            if (result)
+                RowUpdated(rsold, rsnew);
+
+            // Write JSON for API request
+            Dictionary<string, object> d = new ();
+            d.Add("success", result);
+            if (IsJsonResponse() && result) {
+                if (GetRecordFromDictionary(rsnew) is var row && row != null) {
+                    string table = TableVar;
+                    d.Add(table, row);
+                }
+                d.Add("action", Config.ApiEditAction);
+                d.Add("version", Config.ProductVersion);
+                return new JsonBoolResult(d, true);
+            }
+            return new JsonBoolResult(d, result);
         }
 
-        // Render search options
-        protected void RenderSearchOptions()
-        {
-            if (!HasSearchFields() && SearchOptions["searchtoggle"] is ListOption opt)
-                opt.Visible = false;
+        // Add record
+        #pragma warning disable 168, 219
+
+        protected async Task<JsonBoolResult> AddRow(Dictionary<string, object>? rsold = null) { // DN
+            bool result = false;
+
+            // Set up foreign key field value from Session
+            if (CurrentMasterTable == "Order") {
+                OrderID.CurrentValue = OrderID.SessionValue;
+            }
+
+            // Set new row
+            Dictionary<string, object> rsnew = new ();
+            try {
+                // ID
+                ID.SetDbValue(rsnew, ID.CurrentValue);
+
+                // ItemName
+                ItemName.SetDbValue(rsnew, ItemName.CurrentValue);
+
+                // Qty
+                Qty.SetDbValue(rsnew, Qty.CurrentValue);
+
+                // Price
+                Price.SetDbValue(rsnew, Price.CurrentValue);
+
+                // OrderID
+                OrderID.SetDbValue(rsnew, OrderID.CurrentValue);
+            } catch (Exception e) {
+                if (Config.Debug)
+                    throw;
+                FailureMessage = e.Message;
+                return JsonBoolResult.FalseResult;
+            }
+
+            // Update current values
+            SetCurrentValues(rsnew);
+            string? masterFilter;
+            Dictionary<string, object?> detailKeys;
+            bool validMasterRecord;
+
+            // Load db values from rsold
+            LoadDbValues(rsold);
+
+            // Call Row Inserting event
+            bool insertRow = RowInserting(rsold, rsnew);
+            if (insertRow) {
+                try {
+                    result = ConvertToBool(await InsertAsync(rsnew));
+                } catch (Exception e) {
+                    if (Config.Debug)
+                        throw;
+                    FailureMessage = e.Message;
+                    result = false;
+                }
+            } else {
+                if (SuccessMessage != "" || FailureMessage != "") {
+                    // Use the message, do nothing
+                } else if (CancelMessage != "") {
+                    FailureMessage = CancelMessage;
+                    CancelMessage = "";
+                } else {
+                    FailureMessage = Language.Phrase("InsertCancelled");
+                }
+                result = false;
+            }
+
+            // Call Row Inserted event
+            if (result)
+                RowInserted(rsold, rsnew);
+
+            // Write JSON for API request
+            Dictionary<string, object> d = new ();
+            d.Add("success", result);
+            if (IsJsonResponse() && result) {
+                if (GetRecordFromDictionary(rsnew) is var row && row != null) {
+                    string table = TableVar;
+                    d.Add(table, row);
+                }
+                d.Add("action", Config.ApiAddAction);
+                d.Add("version", Config.ProductVersion);
+                return new JsonBoolResult(d, result);
+            }
+            return new JsonBoolResult(d, result);
         }
 
         // Set up master/detail based on QueryString
         protected void SetupMasterParms() {
-            bool validMaster = false;
-            StringValues masterTblVar;
-            StringValues fk;
-            Dictionary<string, object> foreignKeys = new ();
+            // Hide foreign keys
+            string masterTblVar = CurrentMasterTable;
+            if (masterTblVar == "Order") {
+                OrderID.Visible = false;
 
-            // Get the keys for master table
-            if (Query.TryGetValue(Config.TableShowMaster, out masterTblVar) || Query.TryGetValue(Config.TableMaster, out masterTblVar)) { // Do not use Get()
-                if (Empty(masterTblVar)) {
-                    validMaster = true;
-                    DbMasterFilter = "";
-                    DbDetailFilter = "";
-                }
-                if (masterTblVar == "Order") {
-                    validMaster = true;
-                    if (order != null && (Get("fk_ID", out fk) || Get("OrderID", out fk))) {
-                        order.ID.QueryValue = fk;
-                        OrderID.QueryValue = order.ID.QueryValue;
-                        OrderID.SessionValue = OrderID.QueryValue;
-                        foreignKeys.Add("OrderID", fk);
-                        if (!IsNumeric(OrderID.QueryValue))
-                            validMaster = false;
-                    } else {
-                        validMaster = false;
-                    }
-                }
-            } else if (Form.TryGetValue(Config.TableShowMaster, out masterTblVar) || Form.TryGetValue(Config.TableMaster, out masterTblVar)) {
-                if (masterTblVar == "") {
-                    validMaster = true;
-                    DbMasterFilter = "";
-                    DbDetailFilter = "";
-                }
-                if (masterTblVar == "Order") {
-                    validMaster = true;
-                    if (order != null && (Post("fk_ID", out fk) || Post("OrderID", out fk))) {
-                        order.ID.FormValue = fk;
-                        OrderID.FormValue = order.ID.FormValue;
-                        OrderID.SessionValue = OrderID.FormValue;
-                        foreignKeys.Add("OrderID", fk);
-                        if (!IsNumeric(OrderID.FormValue))
-                            validMaster = false;
-                    } else {
-                        validMaster = false;
-                    }
-                }
-            }
-            if (validMaster) {
-                // Save current master table
-                CurrentMasterTable = masterTblVar.ToString();
-
-                // Update URL
-                AddUrl = AddMasterUrl(AddUrl);
-                InlineAddUrl = AddMasterUrl(InlineAddUrl);
-                GridAddUrl = AddMasterUrl(GridAddUrl);
-                GridEditUrl = AddMasterUrl(GridEditUrl);
-                MultiEditUrl = AddMasterUrl(MultiEditUrl);
-
-                // Reset start record counter (new master key)
-                if (!IsAddOrEdit) {
-                    StartRecord = 1;
-                    StartRecordNumber = StartRecord;
-                }
-
-                // Clear previous master key from Session
-                if (masterTblVar != "Order") {
-                    if (!foreignKeys.ContainsKey("OrderID")) // Not current foreign key
-                        OrderID.SessionValue = "";
-                }
+                //if (order.EventCancelled) EventCancelled = true;
+                if (Get<bool>("mastereventcancelled"))
+                    EventCancelled = true;
             }
             DbMasterFilter = MasterFilterFromSession; // Get master filter from session
             DbDetailFilter = DetailFilterFromSession; // Get detail filter from session
-        }
-
-        // Set up Breadcrumb
-        protected void SetupBreadcrumb() {
-            var breadcrumb = new Breadcrumb();
-            string url = CurrentUrl();
-            url = Regex.Replace(url, @"\?cmd=reset(all)?$", ""); // Remove cmd=reset / cmd=resetall
-            breadcrumb.Add("list", TableVar, url, "", TableVar, true);
-            CurrentBreadcrumb = breadcrumb;
         }
 
         // Setup lookup options
@@ -2027,48 +2232,6 @@ public partial class project1 {
         public void CloseRecordset()
         {
             using (Recordset) {} // Dispose
-        }
-
-        // Set up starting record parameters
-        public void SetupStartRecord()
-        {
-            // Exit if DisplayRecords = 0
-            if (DisplayRecords == 0)
-                return;
-            string pageNo = Get(Config.TablePageNumber);
-            string startRec = Get(Config.TableStartRec);
-            bool infiniteScroll = false;
-            infiniteScroll = Param<bool>("infinitescroll");
-            if (!Empty(pageNo) && IsNumeric(pageNo)) {
-                int page = ConvertToInt(pageNo);
-                StartRecord = (page - 1) * DisplayRecords + 1;
-                if (StartRecord <= 0)
-                    StartRecord = 1;
-                else if (StartRecord >= ((TotalRecords - 1) / DisplayRecords) * DisplayRecords + 1)
-                    StartRecord = ((TotalRecords - 1) / DisplayRecords) * DisplayRecords + 1;
-            } else if (!Empty(startRec) && IsNumeric(startRec)) {
-                StartRecord = ConvertToInt(startRec);
-            } else if (!infiniteScroll) {
-                StartRecord = StartRecordNumber;
-            }
-
-            // Check if correct start record counter
-            if (StartRecord <= 0) // Avoid invalid start record counter
-                StartRecord = 1; // Reset start record counter
-            else if (StartRecord > TotalRecords) // Avoid starting record > total records
-                StartRecord = ((TotalRecords - 1) / DisplayRecords) * DisplayRecords + 1; // Point to last page first record
-            else if ((StartRecord - 1) % DisplayRecords != 0)
-                StartRecord = ((StartRecord - 1) / DisplayRecords) * DisplayRecords + 1; // Point to page boundary
-            if (!infiniteScroll)
-                StartRecordNumber = StartRecord;
-        }
-
-        // Get page count
-        public int PageCount
-        {
-            get {
-                return ConvertToInt(Math.Ceiling((double)TotalRecords / DisplayRecords));
-            }
         }
 
         // Page Load event
@@ -2157,21 +2320,6 @@ public partial class project1 {
         public virtual bool RowCustomAction(string action, Dictionary<string, object> row) {
             // Return false to abort
             return true;
-        }
-
-        // Page Exporting event
-        // doc = export document object
-        public virtual bool PageExporting(ref dynamic doc) {
-            //doc.Text.Append("<p>" + "my header" + "</p>"); // Export header
-            //return false; // Return false to skip default export and use Row_Export event
-            return true; // Return true to use default export and skip Row_Export event
-        }
-
-        // Page Exported event
-        // doc = export document object
-        public virtual void PageExported(dynamic doc) {
-            //doc.Text.Append("my footer"); // Export footer
-            //Log("Text: {Text}", doc.Text.ToString());
         }
 
         // Grid Inserting event

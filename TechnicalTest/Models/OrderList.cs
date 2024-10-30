@@ -129,7 +129,7 @@ public partial class project1 {
                 order = this;
 
             // Initialize URLs
-            AddUrl = "OrderAdd";
+            AddUrl = "OrderAdd?" + Config.TableShowDetail + "=";
             InlineAddUrl = PageUrl + "action=add";
             GridAddUrl = PageUrl + "action=gridadd";
             GridEditUrl = PageUrl + "action=gridedit";
@@ -264,7 +264,7 @@ public partial class project1 {
         // Set field visibility
         public void SetVisibility()
         {
-            ID.SetVisibility();
+            ID.Visible = false;
             SalesOrder.SetVisibility();
             OrderDate.SetVisibility();
             Customer.SetVisibility();
@@ -724,6 +724,9 @@ public partial class project1 {
             // Set up custom action (compatible with old version)
             ListActions.Add(CustomActions);
 
+            // Set up lookup cache
+            await SetupLookupOptions(Customer);
+
             // Update form name to avoid conflict
             if (IsModal)
                 FormName = "fOrdergrid";
@@ -1027,11 +1030,8 @@ public partial class project1 {
 
             // Initialize
             var filters = new JObject(); // DN
-            filters.Merge(JObject.Parse(ID.AdvancedSearch.ToJson())); // Field ID
             filters.Merge(JObject.Parse(SalesOrder.AdvancedSearch.ToJson())); // Field SalesOrder
             filters.Merge(JObject.Parse(OrderDate.AdvancedSearch.ToJson())); // Field OrderDate
-            filters.Merge(JObject.Parse(Customer.AdvancedSearch.ToJson())); // Field Customer
-            filters.Merge(JObject.Parse(Address.AdvancedSearch.ToJson())); // Field Address
             filters.Merge(JObject.Parse(BasicSearch.ToJson()));
 
             // Return filter list in JSON
@@ -1058,16 +1058,6 @@ public partial class project1 {
             Command = "search";
             string? sv;
 
-            // Field ID
-            if (filter?.TryGetValue("x_ID", out sv) ?? false) {
-                ID.AdvancedSearch.SearchValue = sv;
-                ID.AdvancedSearch.SearchOperator = filter["z_ID"];
-                ID.AdvancedSearch.SearchCondition = filter["v_ID"];
-                ID.AdvancedSearch.SearchValue2 = filter["y_ID"];
-                ID.AdvancedSearch.SearchOperator2 = filter["w_ID"];
-                ID.AdvancedSearch.Save();
-            }
-
             // Field SalesOrder
             if (filter?.TryGetValue("x_SalesOrder", out sv) ?? false) {
                 SalesOrder.AdvancedSearch.SearchValue = sv;
@@ -1086,26 +1076,6 @@ public partial class project1 {
                 OrderDate.AdvancedSearch.SearchValue2 = filter["y_OrderDate"];
                 OrderDate.AdvancedSearch.SearchOperator2 = filter["w_OrderDate"];
                 OrderDate.AdvancedSearch.Save();
-            }
-
-            // Field Customer
-            if (filter?.TryGetValue("x_Customer", out sv) ?? false) {
-                Customer.AdvancedSearch.SearchValue = sv;
-                Customer.AdvancedSearch.SearchOperator = filter["z_Customer"];
-                Customer.AdvancedSearch.SearchCondition = filter["v_Customer"];
-                Customer.AdvancedSearch.SearchValue2 = filter["y_Customer"];
-                Customer.AdvancedSearch.SearchOperator2 = filter["w_Customer"];
-                Customer.AdvancedSearch.Save();
-            }
-
-            // Field Address
-            if (filter?.TryGetValue("x_Address", out sv) ?? false) {
-                Address.AdvancedSearch.SearchValue = sv;
-                Address.AdvancedSearch.SearchOperator = filter["z_Address"];
-                Address.AdvancedSearch.SearchCondition = filter["v_Address"];
-                Address.AdvancedSearch.SearchValue2 = filter["y_Address"];
-                Address.AdvancedSearch.SearchOperator2 = filter["w_Address"];
-                Address.AdvancedSearch.Save();
             }
             if (filter?.TryGetValue(Config.TableBasicSearch, out string? keyword) ?? false)
                 BasicSearch.SessionKeyword = keyword;
@@ -1142,8 +1112,7 @@ public partial class project1 {
             // Fields to search
             List<DbField> searchFlds = new ();
             searchFlds.Add(SalesOrder);
-            searchFlds.Add(Customer);
-            searchFlds.Add(Address);
+            searchFlds.Add(OrderDate);
             string searchKeyword = def ? BasicSearch.KeywordDefault : BasicSearch.Keyword;
             string searchType = def ? BasicSearch.TypeDefault : BasicSearch.Type;
 
@@ -1215,7 +1184,6 @@ public partial class project1 {
             if (Get("order", out StringValues sv)) {
                 CurrentOrder = sv.ToString();
                 CurrentOrderType = Get("ordertype");
-                UpdateSort(ID); // ID
                 UpdateSort(SalesOrder); // SalesOrder
                 UpdateSort(OrderDate); // OrderDate
                 UpdateSort(Customer); // Customer
@@ -1280,17 +1248,33 @@ public partial class project1 {
             item.Visible = true;
             item.OnLeft = false;
 
-            // "copy"
-            item = ListOptions.Add("copy");
-            item.CssClass = "text-nowrap";
-            item.Visible = true;
-            item.OnLeft = false;
-
             // "delete"
             item = ListOptions.Add("delete");
             item.CssClass = "text-nowrap";
             item.Visible = true;
             item.OnLeft = false;
+
+            // "detail_Item"
+            item = ListOptions.Add("detail_Item");
+            item.CssClass = "text-nowrap";
+            item.Visible = true;
+            item.OnLeft = false;
+            item.ShowInButtonGroup = false;
+            itemGrid = Resolve("ItemGrid")!;
+
+            // Multiple details
+            if (ShowMultipleDetails) {
+                item = ListOptions.Add("details");
+                item.CssClass = "text-nowrap";
+                item.Visible = ShowMultipleDetails && ListOptions.DetailVisible();
+                item.OnLeft = false;
+                item.ShowInButtonGroup = false;
+            }
+
+            // Set up detail pages
+            var _pages = new SubPages();
+            _pages.Add("Item");
+            DetailPages = _pages;
 
             // List actions
             item = ListOptions.Add("listactions");
@@ -1376,19 +1360,6 @@ public partial class project1 {
                 listOption?.Clear();
             }
 
-            // "copy"
-            listOption = ListOptions["copy"];
-            string copycaption = Language.Phrase("CopyLink", true);
-            isVisible = true;
-            if (isVisible) {
-                if (ModalAdd && !IsMobile())
-                    listOption?.SetBody($@"<a class=""ew-row-link ew-copy"" title=""{copycaption}"" data-table=""Order"" data-caption=""{copycaption}"" data-ew-action=""modal"" data-action=""add"" data-ajax=""" + (UseAjaxActions ? "true" : "false") + "\" data-url=\"" + HtmlEncode(AppPath(CopyUrl)) + "\" data-btn=\"AddBtn\">" + Language.Phrase("CopyLink") + "</a>");
-                else
-                    listOption?.SetBody($@"<a class=""ew-row-link ew-copy"" title=""{copycaption}"" data-caption=""{copycaption}"" href=""" + HtmlEncode(AppPath(CopyUrl)) + "\">" + Language.Phrase("CopyLink") + "</a>");
-            } else {
-                listOption?.Clear();
-            }
-
             // "delete"
             listOption = ListOptions["delete"];
             isVisible = true;
@@ -1432,6 +1403,72 @@ public partial class project1 {
                 if (links.Count > 0)
                     listOption?.SetBody(body);
             }
+            var detailViewTblVar = "";
+            var detailCopyTblVar = "";
+            var detailEditTblVar = "";
+            dynamic? detailPage = null;
+            string detailFilter = "";
+
+            // "detail_Item"
+            listOption = ListOptions["detail_Item"];
+            isVisible = true;
+            if (isVisible) {
+                string caption, title, url;
+                var body = Language.Phrase("DetailLink") + Language.TablePhrase("Item", "TblCaption");
+                body = "<a class=\"btn btn-default ew-row-link ew-detail" + (ListOptions.UseDropDownButton ? " dropdown-toggle" : "") + "\" data-action=\"list\" href=\"" + HtmlEncode(AppPath("ItemList?" + Config.TableShowMaster + "=Order&" + ForeignKeyUrl("fk_ID", ID.CurrentValue) + "")) + "\">" + body + "</a>";
+                string links = "";
+                detailPage = Resolve("ItemGrid")!;
+                if (detailPage?.DetailView ?? false) {
+                    caption = Language.Phrase("MasterDetailViewLink", null);
+                    title = Language.Phrase("MasterDetailViewLink", true);
+                    url = GetViewUrl(Config.TableShowDetail + "=Item");
+                    links += "<li><a class=\"dropdown-item ew-row-link ew-detail-view\" data-action=\"view\" data-caption=\"" + title + "\" href=\"" + HtmlEncode(AppPath(url)) + "\">" + caption + "</a></li>";
+                    if (!Empty(detailViewTblVar))
+                        detailViewTblVar += ",";
+                    detailViewTblVar += "Item";
+                }
+                if (detailPage?.DetailEdit ?? false) {
+                    caption = Language.Phrase("MasterDetailEditLink", null);
+                    title = Language.Phrase("MasterDetailEditLink", true);
+                    url = GetEditUrl(Config.TableShowDetail + "=Item");
+                    links += "<li><a class=\"dropdown-item ew-row-link ew-detail-edit\" data-action=\"edit\" data-caption=\"" + title + "\" href=\"" + HtmlEncode(AppPath(url)) + "\">" + caption + "</a></li>";
+                    if (!Empty(detailEditTblVar))
+                        detailEditTblVar += ",";
+                    detailEditTblVar += "Item";
+                }
+                if (!Empty(links)) {
+                    body += "<button type=\"button\" class=\"dropdown-toggle btn btn-default ew-detail\" data-bs-toggle=\"dropdown\"></button>";
+                    body += "<ul class=\"dropdown-menu\">" + links + "</ul>";
+                } else {
+                    body = Regex.Replace(body, @"\b\s+dropdown-toggle\b", "");
+                }
+                body = "<div class=\"btn-group btn-group-sm ew-btn-group\">" + body + "</div>";
+                listOption?.SetBody(body);
+                if (ShowMultipleDetails)
+                    listOption?.SetVisible(false);
+            }
+            if (ShowMultipleDetails) {
+                var body = Language.Phrase("MultipleMasterDetails");
+                body = "<div class=\"btn-group btn-group-sm ew-btn-group\">";
+                string links = "";
+                if (!Empty(detailViewTblVar)) {
+                    links += "<li><a class=\"dropdown-item ew-row-link ew-detail-view\" data-action=\"view\" data-caption=\"" + HtmlEncode(Language.Phrase("MasterDetailViewLink", true)) + "\" href=\"" + HtmlEncode(AppPath(GetViewUrl(Config.TableShowDetail + "=" + detailViewTblVar))) + "\">" + Language.Phrase("MasterDetailViewLink", null) + "</a></li>";
+                }
+                if (!Empty(detailEditTblVar)) {
+                    links += "<li><a class=\"dropdown-item ew-row-link ew-detail-edit\" data-action=\"edit\" data-caption=\"" + HtmlEncode(Language.Phrase("MasterDetailEditLink", true)) + "\" href=\"" + HtmlEncode(AppPath(GetEditUrl(Config.TableShowDetail + "=" + detailEditTblVar))) + "\">" + Language.Phrase("MasterDetailEditLink", null) + "</a></li>";
+                }
+                if (!Empty(detailCopyTblVar)) {
+                    links += "<li><a class=\"dropdown-item ew-row-link ew-detail-copy\" data-action=\"add\" data-caption=\"" + HtmlEncode(Language.Phrase("MasterDetailCopyLink", true)) + "\" href=\"" + HtmlEncode(AppPath(GetCopyUrl(Config.TableShowDetail + "=" + detailCopyTblVar))) + "\">" + Language.Phrase("MasterDetailCopyLink", null) + "</a></li>";
+                }
+                if (!Empty(links)) {
+                    body += "<button type=\"button\" class=\"dropdown-toggle btn btn-default ew-master-detail\" title=\"" + HtmlEncode(Language.Phrase("MultipleMasterDetails", true)) + "\" data-bs-toggle=\"dropdown\">" + Language.Phrase("MultipleMasterDetails") + "</button>";
+                    body += "<ul class=\"dropdown-menu ew-dropdown-menu\">" + links + "</ul>";
+                }
+                body += "</div>";
+                // Multiple details
+                listOption = ListOptions["details"];
+                listOption?.SetBody(body);
+            }
 
             // "checkbox"
             listOption = ListOptions["checkbox"];
@@ -1462,6 +1499,35 @@ public partial class project1 {
             else
                 item.Body = $@"<a class=""ew-add-edit ew-add"" title=""{addTitle}"" data-caption=""{addTitle}"" href=""" + HtmlEncode(AppPath(AddUrl)) + "\">" + Language.Phrase("AddLink") + "</a>";
             item.Visible = AddUrl != "";
+            option = options["detail"];
+            var detailTableLink = "";
+            string caption, title;
+            item = option.Add("detailadd_Item");
+            item = Resolve("Item")!;
+            if (item != null) {
+                caption = Language.Phrase("Add") + "&nbsp;" + Caption + "/" + item.Caption;
+                title = Language.Phrase("Add", true) + "&nbsp;" + Caption + "/" + item.Caption;
+                item.Body = "<a class=\"ew-detail-add-group ew-detail-add\" title=\"" + title + "\" data-caption=\"" + title + "\" href=\"" + HtmlEncode(AppPath(GetAddUrl(Config.TableShowDetail + "=Item"))) + "\">" + caption + "</a>";
+                item.Visible = (item.DetailAdd);
+                if (item.Visible) {
+                    if (detailTableLink != "")
+                        detailTableLink += ",";
+                    detailTableLink += "Item";
+                }
+            }
+
+            // Add multiple details
+            if (ShowMultipleDetails) {
+                item = option.Add("detailsadd");
+                string url = GetAddUrl(Config.TableShowDetail + "=" + detailTableLink);
+                caption = Language.Phrase("AddMasterDetailLink");
+                title = Language.Phrase("AddMasterDetailLink", true);
+                item.Body = "<a class=\"ew-detail-add-group ew-detail-add\" title=\"" + title + "\" data-caption=\"" + title + "\" href=\"" + HtmlEncode(AppPath(url)) + "\">" + caption + "</a>";
+                item.Visible = (detailTableLink != "");
+
+                // Hide single master/detail items
+                detailTableLink?.Split(',').ToList().ForEach(s => option["detailadd_" + s]?.SetVisible(false));
+            }
             option = options["action"];
 
             // Show column list for column visibility
@@ -1470,7 +1536,6 @@ public partial class project1 {
                 item = option.AddGroupOption();
                 item.Body = "";
                 item.Visible = UseColumnVisibility;
-                CreateColumnOption(option.Add("ID")); // DN
                 CreateColumnOption(option.Add("SalesOrder")); // DN
                 CreateColumnOption(option.Add("OrderDate")); // DN
                 CreateColumnOption(option.Add("Customer")); // DN
@@ -1874,21 +1939,22 @@ public partial class project1 {
             // Common render codes for all row types
 
             // ID
+            ID.CellCssStyle = "white-space: nowrap;";
 
             // SalesOrder
+            SalesOrder.CellCssStyle = "white-space: nowrap;";
 
             // OrderDate
+            OrderDate.CellCssStyle = "white-space: nowrap;";
 
             // Customer
+            Customer.CellCssStyle = "white-space: nowrap;";
 
             // Address
+            Address.CellCssStyle = "white-space: nowrap;";
 
             // View row
             if (RowType == RowType.View) {
-                // ID
-                ID.ViewValue = ID.CurrentValue;
-                ID.ViewCustomAttributes = "";
-
                 // SalesOrder
                 SalesOrder.ViewValue = ConvertToString(SalesOrder.CurrentValue); // DN
                 SalesOrder.ViewCustomAttributes = "";
@@ -1899,16 +1965,16 @@ public partial class project1 {
                 OrderDate.ViewCustomAttributes = "";
 
                 // Customer
-                Customer.ViewValue = ConvertToString(Customer.CurrentValue); // DN
+                if (!Empty(Customer.CurrentValue)) {
+                    Customer.ViewValue = Customer.HighlightLookup(ConvertToString(Customer.CurrentValue), Customer.OptionCaption(ConvertToString(Customer.CurrentValue)));
+                } else {
+                    Customer.ViewValue = DbNullValue;
+                }
                 Customer.ViewCustomAttributes = "";
 
                 // Address
                 Address.ViewValue = ConvertToString(Address.CurrentValue); // DN
                 Address.ViewCustomAttributes = "";
-
-                // ID
-                ID.HrefValue = "";
-                ID.TooltipValue = "";
 
                 // SalesOrder
                 SalesOrder.HrefValue = "";

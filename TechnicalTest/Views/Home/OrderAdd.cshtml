@@ -60,6 +60,7 @@ loadjs.ready(["wrapper", "head"], function () {
 
         // Dynamic selection lists
         .setLists({
+            "Customer": @Html.Raw(orderAdd.Customer.ToClientList(orderAdd)),
         })
         .build();
     window[form.id] = form;
@@ -143,9 +144,38 @@ loadjs.ready(["fOrderadd", "datetimepicker"], function () {
         <label id="elh_Order_Customer" for="x_Customer" class="@(orderAdd.LeftColumnClass)">@Html.Raw(orderAdd.Customer.Caption)@Html.Raw(orderAdd.Customer.Required ? Language.Phrase("FieldRequiredIndicator") : "")</label>
         <div class="@(orderAdd.RightColumnClass)"><div @Html.Raw(orderAdd.Customer.CellAttributes)>
 <span id="el_Order_Customer">
-<input type="@(orderAdd.Customer.InputTextType)" name="x_Customer" id="x_Customer" data-table="Order" data-field="x_Customer" value="@Html.Raw(orderAdd.Customer.EditValue)" size="30" maxlength="10" placeholder="@Html.Raw(HtmlEncode(orderAdd.Customer.PlaceHolder))" data-format-pattern="@(orderAdd.Customer.FormatPattern)"@Html.Raw(orderAdd.Customer.EditAttributes) aria-describedby="x_Customer_help">
-@Html.Raw(orderAdd.Customer.GetCustomMessage)
-<div class="invalid-feedback">@Html.Raw(orderAdd.Customer.GetErrorMessage())</div>
+    <select
+        id="x_Customer"
+        name="x_Customer"
+        class="form-select ew-select@(orderAdd.Customer.IsInvalidClass)"
+        data-select2-id="fOrderadd_x_Customer"
+        data-table="Order"
+        data-field="x_Customer"
+        data-value-separator="@(orderAdd.Customer.DisplayValueSeparatorAttribute)"
+        data-placeholder="@(HtmlEncode(orderAdd.Customer.PlaceHolder))"
+        @Html.Raw(orderAdd.Customer.EditAttributes)>
+        @(orderAdd.Customer.SelectOptionListHtml("x_Customer"))
+    </select>
+    @Html.Raw(orderAdd.Customer.GetCustomMessage)
+    <div class="invalid-feedback">@Html.Raw(orderAdd.Customer.GetErrorMessage())</div>
+<script>
+loadjs.ready("fOrderadd", function() {
+    var options = { name: "x_Customer", selectId: "fOrderadd_x_Customer" },
+        el = document.querySelector("select[data-select2-id='" + options.selectId + "']");
+    if (!el)
+        return;
+    options.closeOnSelect = !options.multiple;
+    options.dropdownParent = el.closest("#ew-modal-dialog, #ew-add-opt-dialog");
+    if (fOrderadd.lists.Customer?.lookupOptions.length) {
+        options.data = { id: "x_Customer", form: "fOrderadd" };
+    } else {
+        options.ajax = { id: "x_Customer", form: "fOrderadd", limit: ew.LOOKUP_PAGE_SIZE };
+    }
+    options.minimumResultsForSearch = Infinity;
+    options = Object.assign({}, ew.selectOptions, options, ew.vars.tables.Order.fields.Customer.selectOptions);
+    ew.createSelect(options);
+});
+</script>
 </span>
 </div></div>
     </div>
@@ -164,6 +194,13 @@ loadjs.ready(["fOrderadd", "datetimepicker"], function () {
 } @* orderAdd.Address.Visible (end) *@
 </div><!-- /page* -->
 @{ orderAdd.CloseRecordset(); }
+@if (orderAdd.CurrentDetailTables.Contains("Item") && item.DetailAdd) {
+    if (!Empty(orderAdd.CurrentDetailTable)) {
+<h4 class="ew-detail-caption">@Html.Raw(Language.TablePhrase("Item", "TblCaption"))</h4>
+    }
+        @await Html.PartialAsync("ItemGrid")
+    View = this;
+}
 @Html.Raw(orderAdd.IsModal ? "<template class=\"ew-modal-buttons\">" : "<div class=\"row ew-buttons\">")<!-- buttons .row -->
     <div class="@(orderAdd.OffsetColumnClass)"><!-- buttons offset -->
     <button class="btn btn-primary ew-btn" name="btn-action" id="btn-action" type="submit" form="fOrderadd">@Html.Raw(Language.Phrase("AddBtn"))</button>

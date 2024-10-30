@@ -2,8 +2,11 @@ E:\profes\TechnicalTest\Controllers\ItemController.cs
 E:\profes\TechnicalTest\Models\Item.cs
 E:\profes\TechnicalTest\Views\Home\ItemList.cshtml
 E:\profes\TechnicalTest\Models\ItemList.cs
+E:\profes\TechnicalTest\Views\Home\ItemGrid.cshtml
+E:\profes\TechnicalTest\Models\ItemGrid.cs
 E:\profes\TechnicalTest\Controllers\OrderController.cs
 E:\profes\TechnicalTest\Models\Order.cs
+E:\profes\TechnicalTest\Views\Home\OrderMaster.cshtml
 E:\profes\TechnicalTest\Views\Home\OrderList.cshtml
 E:\profes\TechnicalTest\Models\OrderList.cs
 E:\profes\TechnicalTest\Views\Home\OrderAdd.cshtml

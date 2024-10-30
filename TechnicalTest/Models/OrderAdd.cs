@@ -513,6 +513,9 @@ public partial class project1 {
             if (UseAjaxActions)
                 InlineDelete = true;
 
+            // Set up lookup cache
+            await SetupLookupOptions(Customer);
+
             // Load default values for add
             LoadDefaultValues();
 
@@ -561,6 +564,9 @@ public partial class project1 {
                 await LoadFormValues(); // Load form values
             }
 
+            // Set up detail parameters
+            SetupDetailParms();
+
             // Validate form if post back
             if (postBack) {
                 if (!await ValidateForm()) {
@@ -581,6 +587,9 @@ public partial class project1 {
                             FailureMessage = Language.Phrase("NoRecord"); // No record found
                         return Terminate("OrderList"); // No matching record, return to List page // DN
                     }
+
+                    // Set up detail parameters
+                    SetupDetailParms();
                     break;
                 case "insert": // Add new record // DN
                     SendEmail = true; // Send email on add success
@@ -589,7 +598,10 @@ public partial class project1 {
                         if (Empty(SuccessMessage) && Post("addopt") != "1") // Skip success message for addopt (done in JavaScript)
                             SuccessMessage = Language.Phrase("AddSuccess"); // Set up success message
                         string returnUrl = "";
-                        returnUrl = ReturnUrl;
+                        if (!Empty(CurrentDetailTable)) // Master/detail add
+                            returnUrl = DetailUrl;
+                        else
+                            returnUrl = ReturnUrl;
                         if (GetPageName(returnUrl) == "OrderList")
                             returnUrl = AddMasterUrl(ListUrl); // List page, return to List page with correct master key if necessary
                         else if (GetPageName(returnUrl) == "OrderView")
@@ -614,6 +626,9 @@ public partial class project1 {
                     } else {
                         EventCancelled = true; // Event cancelled
                         RestoreFormValues(); // Add failed, restore form values
+
+                        // Set up detail parameters
+                        SetupDetailParms();
                     }
                     break;
             }
@@ -821,10 +836,6 @@ public partial class project1 {
 
             // View row
             if (RowType == RowType.View) {
-                // ID
-                ID.ViewValue = ID.CurrentValue;
-                ID.ViewCustomAttributes = "";
-
                 // SalesOrder
                 SalesOrder.ViewValue = ConvertToString(SalesOrder.CurrentValue); // DN
                 SalesOrder.ViewCustomAttributes = "";
@@ -835,7 +846,11 @@ public partial class project1 {
                 OrderDate.ViewCustomAttributes = "";
 
                 // Customer
-                Customer.ViewValue = ConvertToString(Customer.CurrentValue); // DN
+                if (!Empty(Customer.CurrentValue)) {
+                    Customer.ViewValue = Customer.HighlightLookup(ConvertToString(Customer.CurrentValue), Customer.OptionCaption(ConvertToString(Customer.CurrentValue)));
+                } else {
+                    Customer.ViewValue = DbNullValue;
+                }
                 Customer.ViewCustomAttributes = "";
 
                 // Address
@@ -868,9 +883,7 @@ public partial class project1 {
 
                 // Customer
                 Customer.SetupEditAttributes();
-                if (!Customer.Raw)
-                    Customer.CurrentValue = HtmlDecode(Customer.CurrentValue);
-                Customer.EditValue = HtmlEncode(Customer.CurrentValue);
+                Customer.EditValue = Customer.Options(true);
                 Customer.PlaceHolder = RemoveHtml(Customer.Caption);
 
                 // Address
@@ -934,6 +947,14 @@ public partial class project1 {
                 }
             }
 
+            // Validate detail grid
+            var detailTblVar = CurrentDetailTables;
+            if (detailTblVar.Contains("Item") && item?.DetailAdd == true) {
+                itemGrid = Resolve("ItemGrid")!; // Get detail page object
+                if (itemGrid != null)
+                    validateForm = validateForm && await itemGrid.ValidateGridForm();
+            }
+
             // Return validate result
             validateForm = validateForm && !HasInvalidFields();
 
@@ -976,6 +997,10 @@ public partial class project1 {
             // Update current values
             SetCurrentValues(rsnew);
 
+            // Begin transaction
+            if (!Empty(CurrentDetailTable) && UseTransaction)
+                Connection.BeginTrans();
+
             // Load db values from rsold
             LoadDbValues(rsold);
 
@@ -1003,6 +1028,25 @@ public partial class project1 {
                 result = false;
             }
 
+            // Add detail records
+            var detailTblVar = CurrentDetailTables;
+            if (detailTblVar.Contains("Item") && item?.DetailAdd == true && result) {
+                item.OrderID.SessionValue = ConvertToString(ID.CurrentValue); // Set master key
+                itemGrid = Resolve("ItemGrid")!; // Get detail page object
+                if (itemGrid != null) {
+                    result = await itemGrid.GridInsert();
+                }
+            }
+
+            // Commit/Rollback transaction
+            if (!Empty(CurrentDetailTable) && UseTransaction) {
+                if (result) {
+                    Connection.CommitTrans(); // Commit transaction
+                } else {
+                    Connection.RollbackTrans(); // Rollback transaction
+                }
+            }
+
             // Call Row Inserted event
             if (result)
                 RowInserted(rsold, rsnew);
@@ -1020,6 +1064,37 @@ public partial class project1 {
                 return new JsonBoolResult(d, result);
             }
             return new JsonBoolResult(d, result);
+        }
+
+        // Set up detail parms based on QueryString
+        protected void SetupDetailParms() {
+            StringValues detailTblVar = "";
+            // Get the keys for master table
+            if (Query.TryGetValue(Config.TableShowDetail, out detailTblVar)) { // Do not use Get()
+                CurrentDetailTable = detailTblVar.ToString();
+            } else {
+                detailTblVar = CurrentDetailTable;
+            }
+            if (!Empty(detailTblVar)) {
+                var detailTblVars = detailTblVar.ToString().Split(',');
+                if (detailTblVars.Contains("Item")) {
+                    itemGrid = Resolve("ItemGrid")!;
+                    if (itemGrid?.DetailAdd ?? false) {
+                        if (CopyRecord)
+                            itemGrid.CurrentMode = "copy";
+                        else
+                            itemGrid.CurrentMode = "add";
+                        itemGrid.CurrentAction = "gridadd";
+
+                        // Save current master table to detail table
+                        itemGrid.CurrentMasterTable = TableVar;
+                        itemGrid.StartRecordNumber = 1;
+                        itemGrid.OrderID.IsDetailKey = true;
+                        itemGrid.OrderID.CurrentValue = ID.CurrentValue;
+                        itemGrid.OrderID.SessionValue = itemGrid.OrderID.CurrentValue;
+                    }
+                }
+            }
         }
 
         // Set up Breadcrumb

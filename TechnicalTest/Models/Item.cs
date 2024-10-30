@@ -186,6 +186,7 @@ public partial class project1 {
                 ViewTag = "FORMATTED TEXT",
                 HtmlTag = "TEXT",
                 InputTextType = "text",
+                IsForeignKey = true, // Foreign key field
                 DefaultErrorMessage = Language.Phrase("IncorrectInteger"),
                 SearchOperators = new () { "=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN", "IS NULL", "IS NOT NULL" },
                 CustomMessage = Language.FieldPhrase("Item", "OrderID", "CustomMsg"),
@@ -312,6 +313,77 @@ public partial class project1 {
                 }
                 field.Sort = fldSort;
             }
+        }
+
+        // Current master table name
+        public string CurrentMasterTable
+        {
+            get => Session.GetString(Config.ProjectName + "_" + TableVar + "_" + Config.TableMasterTable);
+            set => Session[Config.ProjectName + "_" + TableVar + "_" + Config.TableMasterTable] = value;
+        }
+
+        // Session master where clause
+        public string MasterFilterFromSession
+        {
+            get { // Master filter
+                string masterFilter = "";
+            if (CurrentMasterTable == "Order") {
+                dynamic masterTable = Resolve("Order")!;
+                if (!Empty(OrderID.SessionValue))
+                    masterFilter += "" + KeyFilter(masterTable.ID, OrderID.SessionValue, masterTable.ID.DataType, masterTable.DbId);
+                else
+                    return "";
+            }
+                return masterFilter;
+            }
+        }
+
+        // Session detail WHERE clause
+        public string DetailFilterFromSession
+        {
+            get { // Detail filter
+                string detailFilter = "";
+                if (CurrentMasterTable == "Order") {
+                    dynamic masterTable = Resolve("Order")!;
+                    if (!Empty(OrderID.SessionValue))
+                        detailFilter += "" + KeyFilter(OrderID, OrderID.SessionValue, masterTable.ID.DataType, DbId);
+                    else
+                        return "";
+                }
+                return detailFilter;
+            }
+        }
+
+        // Master filter // DN
+        public string? MasterFilter(dynamic? masterTable, Dictionary<string, object?> keys) // DN
+        {
+            bool validKeys = true;
+            object key = "";
+            switch (masterTable?.TableVar) {
+            case "Order":
+                key = keys["OrderID"] ?? "";
+                if (Empty(key)) {
+                    if (masterTable.ID.Required) // Required field and empty value
+                        return ""; // Return empty filter
+                    validKeys = false;
+                } else if (!validKeys) { // Already has empty key
+                    return ""; // Return empty filter
+                }
+                if (validKeys) {
+                    return KeyFilter(masterTable.ID, keys["OrderID"], OrderID.DataType, DbId);
+                }
+                break;
+            }
+            return null; // All null values and no required fields
+        }
+
+        // Detail filter // DN
+        public string DetailFilter(dynamic masterTable) // DN
+        {
+            return masterTable.TableVar switch {
+                "Order" => KeyFilter(OrderID, masterTable.ID.DbValue, masterTable.ID.DataType, masterTable.DbId),
+                _ => ""
+            };
         }
 
         #pragma warning disable 1998
@@ -889,6 +961,10 @@ public partial class project1 {
         // Add master URL
         public string AddMasterUrl(string url)
         {
+            if (CurrentMasterTable == "Order" && !url.Contains(Config.TableShowMaster + "=")) {
+                url += (url.Contains("?") ? "&" : "?") + Config.TableShowMaster + "=" + CurrentMasterTable;
+                url += "&" + ForeignKeyUrl("fk_ID", OrderID.SessionValue); // Use Session Value
+            }
             return url;
         }
 
@@ -1171,10 +1247,17 @@ public partial class project1 {
 
             // OrderID
             OrderID.SetupEditAttributes();
-            OrderID.EditValue = OrderID.CurrentValue; // DN
-            OrderID.PlaceHolder = RemoveHtml(OrderID.Caption);
-            if (!Empty(OrderID.EditValue) && IsNumeric(OrderID.EditValue))
-                OrderID.EditValue = FormatNumber(OrderID.EditValue, null);
+            if (!Empty(OrderID.SessionValue)) {
+                OrderID.CurrentValue = ForeignKeyValue(OrderID.SessionValue);
+                OrderID.ViewValue = OrderID.CurrentValue;
+                OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
+                OrderID.ViewCustomAttributes = "";
+            } else {
+                OrderID.EditValue = OrderID.CurrentValue; // DN
+                OrderID.PlaceHolder = RemoveHtml(OrderID.Caption);
+                if (!Empty(OrderID.EditValue) && IsNumeric(OrderID.EditValue))
+                    OrderID.EditValue = FormatNumber(OrderID.EditValue, null);
+            }
 
             // Call Row Rendered event
             RowRendered();

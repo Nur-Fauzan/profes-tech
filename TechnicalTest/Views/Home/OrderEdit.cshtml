@@ -50,7 +50,6 @@ loadjs.ready(["wrapper", "head"], function () {
         // Add fields
         .setFields([
 
-            ["ID", [fields.ID.visible && fields.ID.required ? ew.Validators.required(fields.ID.caption) : null], fields.ID.isInvalid],
             ["SalesOrder", [fields.SalesOrder.visible && fields.SalesOrder.required ? ew.Validators.required(fields.SalesOrder.caption) : null], fields.SalesOrder.isInvalid],
             ["OrderDate", [fields.OrderDate.visible && fields.OrderDate.required ? ew.Validators.required(fields.OrderDate.caption) : null, ew.Validators.datetime(fields.OrderDate.clientFormatPattern)], fields.OrderDate.isInvalid],
             ["Customer", [fields.Customer.visible && fields.Customer.required ? ew.Validators.required(fields.Customer.caption) : null], fields.Customer.isInvalid],
@@ -70,6 +69,7 @@ loadjs.ready(["wrapper", "head"], function () {
 
         // Dynamic selection lists
         .setLists({
+            "Customer": @Html.Raw(orderEdit.Customer.ToClientList(orderEdit)),
         })
         .build();
     window[form.id] = form;
@@ -88,18 +88,6 @@ loadjs.ready(["wrapper", "head"], function () {
 }
 <input type="hidden" name="@(orderEdit.OldKeyName)" value="@Html.Raw(orderEdit.OldKey)">
 <div class="ew-edit-div"><!-- page* -->
-@if (orderEdit.ID.Visible) { // orderEdit.ID.Visible (begin)
-    <div id="r_ID" @Html.Raw(orderEdit.ID.RowAttributes)>
-        <label id="elh_Order_ID" class="@(orderEdit.LeftColumnClass)">@Html.Raw(orderEdit.ID.Caption)@Html.Raw(orderEdit.ID.Required ? Language.Phrase("FieldRequiredIndicator") : "")</label>
-        <div class="@(orderEdit.RightColumnClass)"><div @Html.Raw(orderEdit.ID.CellAttributes)>
-<span id="el_Order_ID">
-<span @Html.Raw(orderEdit.ID.ViewAttributes)>
-<input type="text" readonly class="form-control-plaintext" value="@Html.Raw(RemoveHtml(ConvertToString(orderEdit.ID.EditValue)))"></span>
-<input type="hidden" data-table="Order" data-field="x_ID" data-hidden="1" name="x_ID" id="x_ID" value="@Html.Raw(HtmlEncode(orderEdit.ID.CurrentValue))">
-</span>
-</div></div>
-    </div>
-} @* orderEdit.ID.Visible (end) *@
 @if (orderEdit.SalesOrder.Visible) { // orderEdit.SalesOrder.Visible (begin)
     <div id="r_SalesOrder" @Html.Raw(orderEdit.SalesOrder.RowAttributes)>
         <label id="elh_Order_SalesOrder" for="x_SalesOrder" class="@(orderEdit.LeftColumnClass)">@Html.Raw(orderEdit.SalesOrder.Caption)@Html.Raw(orderEdit.SalesOrder.Required ? Language.Phrase("FieldRequiredIndicator") : "")</label>
@@ -157,9 +145,38 @@ loadjs.ready(["fOrderedit", "datetimepicker"], function () {
         <label id="elh_Order_Customer" for="x_Customer" class="@(orderEdit.LeftColumnClass)">@Html.Raw(orderEdit.Customer.Caption)@Html.Raw(orderEdit.Customer.Required ? Language.Phrase("FieldRequiredIndicator") : "")</label>
         <div class="@(orderEdit.RightColumnClass)"><div @Html.Raw(orderEdit.Customer.CellAttributes)>
 <span id="el_Order_Customer">
-<input type="@(orderEdit.Customer.InputTextType)" name="x_Customer" id="x_Customer" data-table="Order" data-field="x_Customer" value="@Html.Raw(orderEdit.Customer.EditValue)" size="30" maxlength="10" placeholder="@Html.Raw(HtmlEncode(orderEdit.Customer.PlaceHolder))" data-format-pattern="@(orderEdit.Customer.FormatPattern)"@Html.Raw(orderEdit.Customer.EditAttributes) aria-describedby="x_Customer_help">
-@Html.Raw(orderEdit.Customer.GetCustomMessage)
-<div class="invalid-feedback">@Html.Raw(orderEdit.Customer.GetErrorMessage())</div>
+    <select
+        id="x_Customer"
+        name="x_Customer"
+        class="form-select ew-select@(orderEdit.Customer.IsInvalidClass)"
+        data-select2-id="fOrderedit_x_Customer"
+        data-table="Order"
+        data-field="x_Customer"
+        data-value-separator="@(orderEdit.Customer.DisplayValueSeparatorAttribute)"
+        data-placeholder="@(HtmlEncode(orderEdit.Customer.PlaceHolder))"
+        @Html.Raw(orderEdit.Customer.EditAttributes)>
+        @(orderEdit.Customer.SelectOptionListHtml("x_Customer"))
+    </select>
+    @Html.Raw(orderEdit.Customer.GetCustomMessage)
+    <div class="invalid-feedback">@Html.Raw(orderEdit.Customer.GetErrorMessage())</div>
+<script>
+loadjs.ready("fOrderedit", function() {
+    var options = { name: "x_Customer", selectId: "fOrderedit_x_Customer" },
+        el = document.querySelector("select[data-select2-id='" + options.selectId + "']");
+    if (!el)
+        return;
+    options.closeOnSelect = !options.multiple;
+    options.dropdownParent = el.closest("#ew-modal-dialog, #ew-add-opt-dialog");
+    if (fOrderedit.lists.Customer?.lookupOptions.length) {
+        options.data = { id: "x_Customer", form: "fOrderedit" };
+    } else {
+        options.ajax = { id: "x_Customer", form: "fOrderedit", limit: ew.LOOKUP_PAGE_SIZE };
+    }
+    options.minimumResultsForSearch = Infinity;
+    options = Object.assign({}, ew.selectOptions, options, ew.vars.tables.Order.fields.Customer.selectOptions);
+    ew.createSelect(options);
+});
+</script>
 </span>
 </div></div>
     </div>
@@ -177,7 +194,15 @@ loadjs.ready(["fOrderedit", "datetimepicker"], function () {
     </div>
 } @* orderEdit.Address.Visible (end) *@
 </div><!-- /page* -->
+    <input type="hidden" data-table="Order" data-field="x_ID" data-hidden="1" name="x_ID" id="x_ID" value="@Html.Raw(HtmlEncode(orderEdit.ID.CurrentValue))">
 @{ orderEdit.CloseRecordset(); }
+@if (orderEdit.CurrentDetailTables.Contains("Item") && item.DetailEdit) {
+    if (!Empty(orderEdit.CurrentDetailTable)) {
+<h4 class="ew-detail-caption">@Html.Raw(Language.TablePhrase("Item", "TblCaption"))</h4>
+    }
+        @await Html.PartialAsync("ItemGrid")
+    View = this;
+}
 @Html.Raw(orderEdit.IsModal ? "<template class=\"ew-modal-buttons\">" : "<div class=\"row ew-buttons\">")<!-- buttons .row -->
     <div class="@(orderEdit.OffsetColumnClass)"><!-- buttons offset -->
     <button class="btn btn-primary ew-btn" name="btn-action" id="btn-action" type="submit" form="fOrderedit">@Html.Raw(Language.Phrase("SaveBtn"))</button>

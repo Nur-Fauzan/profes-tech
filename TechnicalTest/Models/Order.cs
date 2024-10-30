@@ -43,7 +43,7 @@ public partial class project1 {
 
         public bool ModalUpdate = false;
 
-        public bool InlineDelete = false;
+        public bool InlineDelete = true;
 
         public bool ModalGridAdd = false;
 
@@ -104,7 +104,9 @@ public partial class project1 {
                 InputTextType = "text",
                 IsAutoIncrement = true, // Autoincrement field
                 IsPrimaryKey = true, // Primary key field
+                IsForeignKey = true, // Foreign key field
                 Nullable = false, // NOT NULL field
+                Sortable = false, // Allow sort
                 DefaultErrorMessage = Language.Phrase("IncorrectInteger"),
                 SearchOperators = new () { "=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN" },
                 CustomMessage = Language.FieldPhrase("Order", "ID", "CustomMsg"),
@@ -137,6 +139,7 @@ public partial class project1 {
             OrderDate = new (this, "x_OrderDate", 133, SqlDbType.DateTime) {
                 Name = "OrderDate",
                 Expression = "[OrderDate]",
+                UseBasicSearch = true,
                 BasicSearchExpression = CastDateFieldForLike("[OrderDate]", 0, "DB"),
                 DateTimeFormat = 0,
                 VirtualExpression = "[OrderDate]",
@@ -158,7 +161,6 @@ public partial class project1 {
             Customer = new (this, "x_Customer", 202, SqlDbType.NVarChar) {
                 Name = "Customer",
                 Expression = "[Customer]",
-                UseBasicSearch = true,
                 BasicSearchExpression = "[Customer]",
                 DateTimeFormat = -1,
                 VirtualExpression = "[Customer]",
@@ -167,19 +169,23 @@ public partial class project1 {
                 SelectMultiple = false,
                 VirtualSearch = false,
                 ViewTag = "FORMATTED TEXT",
-                HtmlTag = "TEXT",
+                HtmlTag = "SELECT",
                 InputTextType = "text",
-                SearchOperators = new () { "=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY", "IS NULL", "IS NOT NULL" },
+                Required = true, // Required field
+                UsePleaseSelect = true, // Use PleaseSelect by default
+                PleaseSelectText = Language.Phrase("PleaseSelect"), // PleaseSelect text
+                OptionCount = 3,
+                SearchOperators = new () { "=", "<>", "IS NULL", "IS NOT NULL" },
                 CustomMessage = Language.FieldPhrase("Order", "Customer", "CustomMsg"),
                 IsUpload = false
             };
+            Customer.Lookup = new Lookup<DbField>(Customer, "Order", false, "", new List<string> {"", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "");
             Fields.Add("Customer", Customer);
 
             // Address
             Address = new (this, "x_Address", 202, SqlDbType.NVarChar) {
                 Name = "Address",
                 Expression = "[Address]",
-                UseBasicSearch = true,
                 BasicSearchExpression = "[Address]",
                 DateTimeFormat = -1,
                 VirtualExpression = "[Address]",
@@ -314,6 +320,31 @@ public partial class project1 {
                         fldSort = fld[1];
                 }
                 field.Sort = fldSort;
+            }
+        }
+
+        // Current detail table name
+        public string CurrentDetailTable
+        {
+            get => Session.GetString(Config.ProjectName + "_" + TableVar + "_" + Config.TableDetailTable);
+            set => Session[Config.ProjectName + "_" + TableVar + "_" + Config.TableDetailTable] = value;
+        }
+
+        // List of current detail table names
+        public List<string> CurrentDetailTables => CurrentDetailTable.Split(',').ToList();
+
+        // Get detail URL
+        public string DetailUrl
+        {
+            get {
+                string detailUrl = "";
+                if (CurrentDetailTable == "Item" && item != null) {
+                    detailUrl = item.ListUrl + "?" + Config.TableShowMaster + "=" + TableVar;
+                    detailUrl += "&" + ForeignKeyUrl("fk_ID", ID.CurrentValue);
+                }
+                if (Empty(detailUrl))
+                    detailUrl = "OrderList";
+                return detailUrl;
             }
         }
 
@@ -628,7 +659,38 @@ public partial class project1 {
                 row = ConvertToDictionary<object>(data);
             else
                 throw new ArgumentException("Data must be of anonymous type or Dictionary<string, object> type", "data");
+            bool cascadeUpdate = false;
+            DbDataReader? drwrk;
+            int updateResult;
             Dictionary<string, object> rscascade = new ();
+            if (rsold != null) {
+                // Cascade Update detail table 'Item'
+                cascadeUpdate = false;
+                rscascade.Clear();
+                if (row.ContainsKey("ID") && !Empty(row["ID"]) && !SameString(rsold["ID"], row["ID"])) {
+                    cascadeUpdate = true;
+                    rscascade.Add("OrderID", row["ID"]);
+                }
+                if (cascadeUpdate) {
+                    Dictionary<string, object>? rskey = new ();
+                    item = Resolve("Item")!;
+                    if (item != null) {
+                        var rows = await item.Connection.GetRowsAsync(item.GetSql("[OrderID] = " + QuotedValue(rsold["ID"], DataType.Number, "DB")));
+                        foreach (var rsdtlold in rows) {
+                            rskey = item.GetRowFilterAsDictionary(rsdtlold);
+                            var rsdtlnew = new Dictionary<string, object>(rsdtlold);
+                            foreach (var (key, value) in rscascade)
+                                rsdtlnew[key] = value;
+                            bool update = item.Invoke("RowUpdating", new object[] { rsdtlold, rsdtlnew }) is bool b && b; // Call Row Updating event
+                            if (update)
+                                update = await item.UpdateAsync(rscascade, rskey, rsdtlold) >= 0; // Update
+                            if (!update)
+                                return -1;
+                            item.Invoke("RowUpdated", new object[] { rsdtlold, rsdtlnew }); // Call Row Updated event
+                        }
+                    }
+                }
+            }
             row = row.Where(kvp => FieldByName(kvp.Key) is DbField fld && !fld.IsCustom).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             if (row.Count == 0)
                 return -1;
@@ -689,6 +751,24 @@ public partial class project1 {
                 row = d;
             else if (IsAnonymousType(data))
                 row = ConvertToDictionary<object>(data);
+            List<Dictionary<string, object>>? dtlrows;
+            if (row != null) {
+                // Cascade delete detail table 'Item'
+                item = Resolve("Item")!;
+                if (item != null) {
+                    dtlrows = await Connection.GetRowsAsync(item.GetSql("[OrderID] = " + QuotedValue(row["ID"], DataType.Number, "DB")));
+                    delete = dtlrows.All(dtlrow => item.Invoke("RowDeleting", new object[] { dtlrow }) is bool b && b); // Call Row Deleting event
+                    if (delete) {
+                        foreach (var dtlrow in dtlrows) {
+                            delete = ConvertToBool(await item.DeleteAsync(dtlrow)); // Delete
+                            if (!delete)
+                                break;
+                        }
+                    }
+                    if (delete)
+                        dtlrows.ForEach(dtlrow => item.Invoke("RowDeleted", new object[] { dtlrow })); // Call Row Deleted event
+                }
+            }
             var queryBuilder = GetQueryBuilder(true); // Use main connection
             if (GetRowFilterAsDictionary(row) is IDictionary<string, object> rowFilter)
                 queryBuilder.Where(rowFilter);
@@ -873,7 +953,10 @@ public partial class project1 {
         public string GetEditUrl(string parm = "")
         {
             string url = "";
-            url = KeyUrl("OrderEdit", parm);
+            if (!Empty(parm))
+                url = KeyUrl("OrderEdit", parm);
+            else
+                url = KeyUrl("OrderEdit", Config.TableShowDetail + "=");
             return AppPath(AddMasterUrl(url)); // DN
         }
 
@@ -888,7 +971,10 @@ public partial class project1 {
         public string GetCopyUrl(string parm = "")
         {
             string url = "";
-            url = KeyUrl("OrderAdd", parm);
+            if (!Empty(parm))
+                url = KeyUrl("OrderAdd", parm);
+            else
+                url = KeyUrl("OrderAdd", Config.TableShowDetail + "=");
             return AppPath(AddMasterUrl(url)); // DN
         }
 
@@ -1129,14 +1215,19 @@ public partial class project1 {
             // Common render codes
 
             // ID
+            ID.CellCssStyle = "white-space: nowrap;";
 
             // SalesOrder
+            SalesOrder.CellCssStyle = "white-space: nowrap;";
 
             // OrderDate
+            OrderDate.CellCssStyle = "white-space: nowrap;";
 
             // Customer
+            Customer.CellCssStyle = "white-space: nowrap;";
 
             // Address
+            Address.CellCssStyle = "white-space: nowrap;";
 
             // ID
             ID.ViewValue = ID.CurrentValue;
@@ -1152,7 +1243,11 @@ public partial class project1 {
             OrderDate.ViewCustomAttributes = "";
 
             // Customer
-            Customer.ViewValue = ConvertToString(Customer.CurrentValue); // DN
+            if (!Empty(Customer.CurrentValue)) {
+                Customer.ViewValue = Customer.HighlightLookup(ConvertToString(Customer.CurrentValue), Customer.OptionCaption(ConvertToString(Customer.CurrentValue)));
+            } else {
+                Customer.ViewValue = DbNullValue;
+            }
             Customer.ViewCustomAttributes = "";
 
             // Address
@@ -1213,9 +1308,7 @@ public partial class project1 {
 
             // Customer
             Customer.SetupEditAttributes();
-            if (!Customer.Raw)
-                Customer.CurrentValue = HtmlDecode(Customer.CurrentValue);
-            Customer.EditValue = HtmlEncode(Customer.CurrentValue);
+            Customer.EditValue = Customer.Options(true);
             Customer.PlaceHolder = RemoveHtml(Customer.Caption);
 
             // Address
@@ -1257,13 +1350,11 @@ public partial class project1 {
                 if (doc.Horizontal) { // Horizontal format, write header
                     doc.BeginExportRow();
                     if (exportType == "view") {
-                        doc.ExportCaption(ID);
                         doc.ExportCaption(SalesOrder);
                         doc.ExportCaption(OrderDate);
                         doc.ExportCaption(Customer);
                         doc.ExportCaption(Address);
                     } else {
-                        doc.ExportCaption(ID);
                         doc.ExportCaption(SalesOrder);
                         doc.ExportCaption(OrderDate);
                         doc.ExportCaption(Customer);
@@ -1305,13 +1396,11 @@ public partial class project1 {
                     if (!doc.ExportCustom) {
                         doc.BeginExportRow(rowcnt); // Allow CSS styles if enabled
                         if (exportType == "view") {
-                            await doc.ExportField(ID);
                             await doc.ExportField(SalesOrder);
                             await doc.ExportField(OrderDate);
                             await doc.ExportField(Customer);
                             await doc.ExportField(Address);
                         } else {
-                            await doc.ExportField(ID);
                             await doc.ExportField(SalesOrder);
                             await doc.ExportField(OrderDate);
                             await doc.ExportField(Customer);

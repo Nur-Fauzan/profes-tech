@@ -1,0 +1,51 @@
+@{
+    order.TableClass = "table table-striped table-bordered table-hover table-sm ew-table ew-master-table"; // DN
+}
+@if (order.Visible) { // order.Visible (begin)
+<div class="ew-master-div">
+<table id="tbl_Ordermaster" class="table ew-view-table ew-master-table ew-vertical">
+    <tbody>
+        @if (order.SalesOrder.Visible) { // order.SalesOrder.Visible (begin)
+        <tr id="r_SalesOrder" @Html.Raw(order.SalesOrder.RowAttributes)>
+            <td class="@(order.TableLeftColumnClass)">@Html.Raw(order.SalesOrder.Caption)</td>
+            <td @Html.Raw(order.SalesOrder.CellAttributes)>
+<span id="el_Order_SalesOrder">
+<span @Html.Raw(order.SalesOrder.ViewAttributes)>
+@Html.Raw(order.SalesOrder.GetViewValue())</span>
+</span></td>
+        </tr>
+        } @* order.SalesOrder.Visible (end) *@
+        @if (order.OrderDate.Visible) { // order.OrderDate.Visible (begin)
+        <tr id="r_OrderDate" @Html.Raw(order.OrderDate.RowAttributes)>
+            <td class="@(order.TableLeftColumnClass)">@Html.Raw(order.OrderDate.Caption)</td>
+            <td @Html.Raw(order.OrderDate.CellAttributes)>
+<span id="el_Order_OrderDate">
+<span @Html.Raw(order.OrderDate.ViewAttributes)>
+@Html.Raw(order.OrderDate.GetViewValue())</span>
+</span></td>
+        </tr>
+        } @* order.OrderDate.Visible (end) *@
+        @if (order.Customer.Visible) { // order.Customer.Visible (begin)
+        <tr id="r_Customer" @Html.Raw(order.Customer.RowAttributes)>
+            <td class="@(order.TableLeftColumnClass)">@Html.Raw(order.Customer.Caption)</td>
+            <td @Html.Raw(order.Customer.CellAttributes)>
+<span id="el_Order_Customer">
+<span @Html.Raw(order.Customer.ViewAttributes)>
+@Html.Raw(order.Customer.GetViewValue())</span>
+</span></td>
+        </tr>
+        } @* order.Customer.Visible (end) *@
+        @if (order.Address.Visible) { // order.Address.Visible (begin)
+        <tr id="r_Address" @Html.Raw(order.Address.RowAttributes)>
+            <td class="@(order.TableLeftColumnClass)">@Html.Raw(order.Address.Caption)</td>
+            <td @Html.Raw(order.Address.CellAttributes)>
+<span id="el_Order_Address">
+<span @Html.Raw(order.Address.ViewAttributes)>
+@Html.Raw(order.Address.GetViewValue())</span>
+</span></td>
+        </tr>
+        } @* order.Address.Visible (end) *@
+    </tbody>
+</table>
+</div>
+} @* order.Visible (end) *@

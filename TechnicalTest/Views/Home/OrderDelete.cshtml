@@ -64,9 +64,6 @@ loadjs.ready("head", function() {
 <table class="@(orderDelete.TableClass)">
     <thead>
     <tr class="ew-table-header">
-@if (orderDelete.ID.Visible) { // orderDelete.ID.Visible (begin)
-        <th class="@Html.Raw(orderDelete.ID.HeaderCellClass)"><span id="elh_Order_ID" class="Order_ID">@Html.Raw(orderDelete.ID.Caption)</span></th>
-} @* orderDelete.ID.Visible (end) *@
 @if (orderDelete.SalesOrder.Visible) { // orderDelete.SalesOrder.Visible (begin)
         <th class="@Html.Raw(orderDelete.SalesOrder.HeaderCellClass)"><span id="elh_Order_SalesOrder" class="Order_SalesOrder">@Html.Raw(orderDelete.SalesOrder.Caption)</span></th>
 } @* orderDelete.SalesOrder.Visible (end) *@
@@ -97,13 +94,6 @@ loadjs.ready("head", function() {
     // Render row
     await orderDelete.RenderRow();
     <tr @Html.Raw(orderDelete.RowAttributes)>
-@if (orderDelete.ID.Visible) { // orderDelete.ID.Visible (begin)
-        <td @Html.Raw(orderDelete.ID.CellAttributes)>
-<span id="">
-<span @Html.Raw(orderDelete.ID.ViewAttributes)>
-@Html.Raw(orderDelete.ID.GetViewValue())</span>
-</span></td>
-} @* orderDelete.ID.Visible (end) *@
 @if (orderDelete.SalesOrder.Visible) { // orderDelete.SalesOrder.Visible (begin)
         <td @Html.Raw(orderDelete.SalesOrder.CellAttributes)>
 <span id="">
