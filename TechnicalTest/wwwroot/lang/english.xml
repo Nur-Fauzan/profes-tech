@@ -1150,7 +1150,6 @@
     </fullcalendar>
   </global>
   <project>
-    <phrase id="footertext" value="&amp;copy;2023 e.World Technology Limited. All rights reserved." />
     <menu id="1">
       <phrase id="menutext" value="Items" />
     </menu>

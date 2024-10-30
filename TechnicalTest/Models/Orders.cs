@@ -81,7 +81,7 @@ public partial class project1 {
             ExportWordPageOrientation = ""; // Page orientation (Word only)
             DetailAdd = true; // Allow detail add
             DetailEdit = true; // Allow detail edit
-            DetailView = true; // Allow detail view
+            DetailView = false; // Allow detail view
             ShowMultipleDetails = false; // Show multiple details
             GridAddRowCount = 5;
             AllowAddDeleteRow = true; // Allow add/delete row
@@ -1358,10 +1358,6 @@ public partial class project1 {
                 if (doc.Horizontal) { // Horizontal format, write header
                     doc.BeginExportRow();
                     if (exportType == "view") {
-                        doc.ExportCaption(SalesOrder);
-                        doc.ExportCaption(OrderDate);
-                        doc.ExportCaption(Customer);
-                        doc.ExportCaption(Address);
                     } else {
                         doc.ExportCaption(SalesOrder);
                         doc.ExportCaption(OrderDate);
@@ -1404,10 +1400,6 @@ public partial class project1 {
                     if (!doc.ExportCustom) {
                         doc.BeginExportRow(rowcnt); // Allow CSS styles if enabled
                         if (exportType == "view") {
-                            await doc.ExportField(SalesOrder);
-                            await doc.ExportField(OrderDate);
-                            await doc.ExportField(Customer);
-                            await doc.ExportField(Address);
                         } else {
                             await doc.ExportField(SalesOrder);
                             await doc.ExportField(OrderDate);

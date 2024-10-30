@@ -268,7 +268,7 @@ public partial class project1 {
             ItemName.SetVisibility();
             Qty.SetVisibility();
             Price.SetVisibility();
-            OrderID.SetVisibility();
+            OrderID.Visible = false;
         }
 
         // Constructor
@@ -733,6 +733,9 @@ public partial class project1 {
             // Set up custom action (compatible with old version)
             ListActions.Add(CustomActions);
 
+            // Set up lookup cache
+            await SetupLookupOptions(OrderID);
+
             // Load default values for add
             LoadDefaultValues();
 
@@ -1149,21 +1152,7 @@ public partial class project1 {
         #pragma warning disable 1998
         // Switch to Inline Add mode
         protected async Task InlineAddMode() {
-            if (IsCopy) {
-                object? rv;
-                StringValues qv;
-                if (RouteValues.TryGetValue("ID", out rv)) { // DN
-                    ID.QueryValue = UrlDecode(rv); // DN
-                } else if (Get("ID", out qv)) {
-                    ID.QueryValue = qv;
-                } else {
-                    CurrentAction = "add";
-                }
-                OldKey = GetKey(true); // Get from CurrentValue
-            } else {
-                OldKey = ""; // Clear old record key
-            }
-            SetKey(OldKey); // Set to OldValue
+            CurrentAction = "add";
             Session[Config.SessionInlineMode] = "add"; // Enabled inline add
         }
         #pragma warning restore 1998
@@ -1231,7 +1220,6 @@ public partial class project1 {
             ItemName.ClearErrorMessage();
             Qty.ClearErrorMessage();
             Price.ClearErrorMessage();
-            OrderID.ClearErrorMessage();
         }
 
         #pragma warning disable 162, 1998
@@ -1245,7 +1233,6 @@ public partial class project1 {
             filters.Merge(JObject.Parse(ItemName.AdvancedSearch.ToJson())); // Field ItemName
             filters.Merge(JObject.Parse(Qty.AdvancedSearch.ToJson())); // Field Qty
             filters.Merge(JObject.Parse(Price.AdvancedSearch.ToJson())); // Field Price
-            filters.Merge(JObject.Parse(OrderID.AdvancedSearch.ToJson())); // Field OrderID
             filters.Merge(JObject.Parse(BasicSearch.ToJson()));
 
             // Return filter list in JSON
@@ -1301,16 +1288,6 @@ public partial class project1 {
                 Price.AdvancedSearch.SearchOperator2 = filter["w_Price"];
                 Price.AdvancedSearch.Save();
             }
-
-            // Field OrderID
-            if (filter?.TryGetValue("x_OrderID", out sv) ?? false) {
-                OrderID.AdvancedSearch.SearchValue = sv;
-                OrderID.AdvancedSearch.SearchOperator = filter["z_OrderID"];
-                OrderID.AdvancedSearch.SearchCondition = filter["v_OrderID"];
-                OrderID.AdvancedSearch.SearchValue2 = filter["y_OrderID"];
-                OrderID.AdvancedSearch.SearchOperator2 = filter["w_OrderID"];
-                OrderID.AdvancedSearch.Save();
-            }
             if (filter?.TryGetValue(Config.TableBasicSearch, out string? keyword) ?? false)
                 BasicSearch.SessionKeyword = keyword;
             if (filter?.TryGetValue(Config.TableBasicSearchType, out string? type) ?? false)
@@ -1324,7 +1301,6 @@ public partial class project1 {
             BuildSearchSql(ref where, ItemName, def, true); // ItemName
             BuildSearchSql(ref where, Qty, def, true); // Qty
             BuildSearchSql(ref where, Price, def, true); // Price
-            BuildSearchSql(ref where, OrderID, def, true); // OrderID
 
             // Set up search command
             if (!def && !Empty(where) && (new[] { "", "reset", "resetall" }).Contains(Command))
@@ -1333,7 +1309,6 @@ public partial class project1 {
                 ItemName.AdvancedSearch.Save(); // ItemName
                 Qty.AdvancedSearch.Save(); // Qty
                 Price.AdvancedSearch.Save(); // Price
-                OrderID.AdvancedSearch.Save(); // OrderID
 
                 // Clear rules for QueryBuilder
                 SessionRules = "";
@@ -1491,13 +1466,6 @@ public partial class project1 {
                 BuildSearchSql(ref filter, Price, false, true);
             if (!Empty(filter))
                 filterList += "<div><span class=\"" + captionClass + "\">" + Price.Caption + "</span>" + captionSuffix + filter + "</div>";
-
-            // Field OrderID
-            filter = QueryBuilderWhere("OrderID");
-            if (Empty(filter))
-                BuildSearchSql(ref filter, OrderID, false, true);
-            if (!Empty(filter))
-                filterList += "<div><span class=\"" + captionClass + "\">" + OrderID.Caption + "</span>" + captionSuffix + filter + "</div>";
             if (!Empty(BasicSearch.Keyword))
                 filterList += "<div><span class=\"" + captionClass + "\">" + Language.Phrase("BasicSearchKeyword") + "</span>" + captionSuffix + BasicSearch.Keyword + "</div>";
 
@@ -1521,7 +1489,6 @@ public partial class project1 {
             searchFlds.Add(ItemName);
             searchFlds.Add(Qty);
             searchFlds.Add(Price);
-            searchFlds.Add(OrderID);
             string searchKeyword = def ? BasicSearch.KeywordDefault : BasicSearch.Keyword;
             string searchType = def ? BasicSearch.TypeDefault : BasicSearch.Type;
 
@@ -1552,8 +1519,6 @@ public partial class project1 {
             if (Qty.AdvancedSearch.IssetSession)
                 return true;
             if (Price.AdvancedSearch.IssetSession)
-                return true;
-            if (OrderID.AdvancedSearch.IssetSession)
                 return true;
             return false;
         }
@@ -1588,7 +1553,6 @@ public partial class project1 {
             ItemName.AdvancedSearch.UnsetSession();
             Qty.AdvancedSearch.UnsetSession();
             Price.AdvancedSearch.UnsetSession();
-            OrderID.AdvancedSearch.UnsetSession();
         }
 
         // Restore all search parameters
@@ -1602,7 +1566,6 @@ public partial class project1 {
             ItemName.AdvancedSearch.Load();
             Qty.AdvancedSearch.Load();
             Price.AdvancedSearch.Load();
-            OrderID.AdvancedSearch.Load();
         }
 
         // Set up sort parameters
@@ -1621,7 +1584,6 @@ public partial class project1 {
                 UpdateSort(ItemName); // ItemName
                 UpdateSort(Qty); // Qty
                 UpdateSort(Price); // Price
-                UpdateSort(OrderID); // OrderID
                 StartRecordNumber = 1; // Reset start position
             }
 
@@ -1687,7 +1649,7 @@ public partial class project1 {
             // "copy"
             item = ListOptions.Add("copy");
             item.CssClass = "text-nowrap";
-            item.Visible = true;
+            item.Visible = (IsAdd);
             item.OnLeft = false;
 
             // "delete"
@@ -1712,6 +1674,14 @@ public partial class project1 {
             item.Header = "<div class=\"form-check\"><input type=\"checkbox\" name=\"key\" id=\"key\" class=\"form-check-input\" data-ew-action=\"select-all-keys\"></div>";
             if (item.OnLeft)
                 item.MoveTo(0);
+            item.ShowInDropDown = false;
+            item.ShowInButtonGroup = false;
+
+            // "sequence"
+            item = ListOptions.Add("sequence");
+            item.CssClass = "text-nowrap";
+            item.Visible = true;
+            item.OnLeft = true; // Always on left
             item.ShowInDropDown = false;
             item.ShowInButtonGroup = false;
 
@@ -1769,6 +1739,10 @@ public partial class project1 {
                 if (RowAction == "insert" && IsConfirm && EmptyRow())
                     MultiSelectKey += "<input type=\"hidden\" name=\"" + blankRowName + "\" id=\"" + blankRowName + "\" value=\"1\">";
             }
+
+            // "sequence"
+            listOption = ListOptions["sequence"];
+            listOption?.SetBody(FormatSequenceNumber(RecordCount));
 
             // "copy"
             listOption = ListOptions["copy"];
@@ -1836,21 +1810,6 @@ public partial class project1 {
                     listOption?.AddBody($@"<a class=""ew-row-link ew-inline-edit"" title=""{inlineEditTitle}"" data-caption=""{inlineEditTitle}"" data-ew-action=""inline"" data-action=""edit"" data-key=""" + HtmlEncode(GetKey(true)) + "\" data-url=\"" + HtmlEncode(AppPath(InlineEditUrl)) + "\">" + inlineEditCaption + "</a>");
                 else
                     listOption?.AddBody($@"<a class=""ew-row-link ew-inline-edit"" title=""{inlineEditTitle}"" data-caption=""{inlineEditTitle}"" href=""" + HtmlEncode(UrlAddHash(AppPath(InlineEditUrl), "r" + RowCount + "_" + TableVar)) + "\">" + inlineEditCaption + "</a>");
-            } else {
-                listOption?.Clear();
-            }
-
-            // "copy"
-            listOption = ListOptions["copy"];
-            string copycaption = Language.Phrase("CopyLink", true);
-            isVisible = true;
-            if (isVisible) {
-                string inlineCopyCaption = Language.Phrase("InlineCopyLink");
-                string inlineCopyTitle = Language.Phrase("InlineCopyLink", true);
-                if (UseAjaxActions)
-                    listOption?.AddBody($@"<a class=""ew-row-link ew-inline-copy"" title=""{inlineCopyTitle}"" data-caption=""{inlineCopyTitle}"" data-ew-action=""inline"" data-action=""copy"" data-position=""top"" data-key=""" + HtmlEncode(GetKey(true)) + "\" data-url=\"" + HtmlEncode(AppPath(InlineCopyUrl)) + "\">" + inlineCopyCaption + "</a>");
-                else
-                    listOption?.AddBody($@"<a class=""ew-row-link ew-inline-copy"" title=""{inlineCopyTitle}"" data-caption=""{inlineCopyTitle}"" href=""" + HtmlEncode(AppPath(InlineCopyUrl)) + "\">" + inlineCopyCaption + "</a>");
             } else {
                 listOption?.Clear();
             }
@@ -1939,7 +1898,6 @@ public partial class project1 {
                 CreateColumnOption(option.Add("ItemName")); // DN
                 CreateColumnOption(option.Add("Qty")); // DN
                 CreateColumnOption(option.Add("Price")); // DN
-                CreateColumnOption(option.Add("OrderID")); // DN
             }
 
             // Set up options default
@@ -2303,17 +2261,6 @@ public partial class project1 {
                 Command = "search";
             if (Query.ContainsKey("z_Price"))
                 Price.AdvancedSearch.SearchOperator = Get("z_Price");
-
-            // OrderID
-            if (!IsAddOrEdit)
-                if (Query.ContainsKey("x_OrderID[]"))
-                    OrderID.AdvancedSearch.SearchValue = Get("x_OrderID[]");
-                else
-                    OrderID.AdvancedSearch.SearchValue = Get("OrderID"); // Default Value // DN
-            if (!Empty(OrderID.AdvancedSearch.SearchValue) && Command == "")
-                Command = "search";
-            if (Query.ContainsKey("z_OrderID"))
-                OrderID.AdvancedSearch.SearchOperator = Get("z_OrderID");
         }
 
         #pragma warning disable 1998
@@ -2351,15 +2298,6 @@ public partial class project1 {
                     Price.SetFormValue(val);
             }
 
-            // Check field name 'OrderID' before field var 'x_OrderID'
-            val = CurrentForm.HasValue("OrderID") ? CurrentForm.GetValue("OrderID") : CurrentForm.GetValue("x_OrderID");
-            if (!OrderID.IsDetailKey) {
-                if (IsApi() && !CurrentForm.HasValue("OrderID") && !CurrentForm.HasValue("x_OrderID")) // DN
-                    OrderID.Visible = false; // Disable update for API request
-                else
-                    OrderID.SetFormValue(val, true, validate);
-            }
-
             // Check field name 'ID' before field var 'x_ID'
             val = CurrentForm.HasValue("ID") ? CurrentForm.GetValue("ID") : CurrentForm.GetValue("x_ID");
             if (!ID.IsDetailKey && !IsGridAdd && !IsAdd)
@@ -2375,7 +2313,6 @@ public partial class project1 {
             ItemName.CurrentValue = ItemName.FormValue;
             Qty.CurrentValue = Qty.FormValue;
             Price.CurrentValue = Price.FormValue;
-            OrderID.CurrentValue = OrderID.FormValue;
         }
 
         // Load recordset // DN
@@ -2524,11 +2461,6 @@ public partial class project1 {
                 Price.ViewValue = ConvertToString(Price.CurrentValue); // DN
                 Price.ViewCustomAttributes = "";
 
-                // OrderID
-                OrderID.ViewValue = OrderID.CurrentValue;
-                OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
-                OrderID.ViewCustomAttributes = "";
-
                 // ItemName
                 ItemName.HrefValue = "";
                 ItemName.TooltipValue = "";
@@ -2540,10 +2472,6 @@ public partial class project1 {
                 // Price
                 Price.HrefValue = "";
                 Price.TooltipValue = "";
-
-                // OrderID
-                OrderID.HrefValue = "";
-                OrderID.TooltipValue = "";
             } else if (RowType == RowType.Add) {
                 // ItemName
                 ItemName.SetupEditAttributes();
@@ -2566,20 +2494,6 @@ public partial class project1 {
                 Price.EditValue = HtmlEncode(Price.CurrentValue);
                 Price.PlaceHolder = RemoveHtml(Price.Caption);
 
-                // OrderID
-                OrderID.SetupEditAttributes();
-                if (!Empty(OrderID.SessionValue)) {
-                    OrderID.CurrentValue = ForeignKeyValue(OrderID.SessionValue);
-                    OrderID.ViewValue = OrderID.CurrentValue;
-                    OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
-                    OrderID.ViewCustomAttributes = "";
-                } else {
-                    OrderID.EditValue = OrderID.CurrentValue; // DN
-                    OrderID.PlaceHolder = RemoveHtml(OrderID.Caption);
-                    if (!Empty(OrderID.EditValue) && IsNumeric(OrderID.EditValue))
-                        OrderID.EditValue = FormatNumber(OrderID.EditValue, null);
-                }
-
                 // Add refer script
 
                 // ItemName
@@ -2590,9 +2504,6 @@ public partial class project1 {
 
                 // Price
                 Price.HrefValue = "";
-
-                // OrderID
-                OrderID.HrefValue = "";
             } else if (RowType == RowType.Edit) {
                 // ItemName
                 ItemName.SetupEditAttributes();
@@ -2615,20 +2526,6 @@ public partial class project1 {
                 Price.EditValue = HtmlEncode(Price.CurrentValue);
                 Price.PlaceHolder = RemoveHtml(Price.Caption);
 
-                // OrderID
-                OrderID.SetupEditAttributes();
-                if (!Empty(OrderID.SessionValue)) {
-                    OrderID.CurrentValue = ForeignKeyValue(OrderID.SessionValue);
-                    OrderID.ViewValue = OrderID.CurrentValue;
-                    OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
-                    OrderID.ViewCustomAttributes = "";
-                } else {
-                    OrderID.EditValue = OrderID.CurrentValue; // DN
-                    OrderID.PlaceHolder = RemoveHtml(OrderID.Caption);
-                    if (!Empty(OrderID.EditValue) && IsNumeric(OrderID.EditValue))
-                        OrderID.EditValue = FormatNumber(OrderID.EditValue, null);
-                }
-
                 // Edit refer script
 
                 // ItemName
@@ -2639,9 +2536,6 @@ public partial class project1 {
 
                 // Price
                 Price.HrefValue = "";
-
-                // OrderID
-                OrderID.HrefValue = "";
             } else if (RowType == RowType.Search) {
                 // ItemName
                 if (ItemName.UseFilter && !Empty(ItemName.AdvancedSearch.SearchValue)) {
@@ -2656,11 +2550,6 @@ public partial class project1 {
                 // Price
                 if (Price.UseFilter && !Empty(Price.AdvancedSearch.SearchValue)) {
                     Price.EditValue = ConvertToString(Price.AdvancedSearch.SearchValue).Split(Config.MultipleOptionSeparator).ToList();
-                }
-
-                // OrderID
-                if (OrderID.UseFilter && !Empty(OrderID.AdvancedSearch.SearchValue)) {
-                    OrderID.EditValue = ConvertToString(OrderID.AdvancedSearch.SearchValue).Split(Config.MultipleOptionSeparator).ToList();
                 }
             }
             if (RowType == RowType.Add || RowType == RowType.Edit || RowType == RowType.Search) // Add/Edit/Search row
@@ -2714,14 +2603,6 @@ public partial class project1 {
                     Price.AddErrorMessage(ConvertToString(Price.RequiredErrorMessage).Replace("%s", Price.Caption));
                 }
             }
-            if (OrderID.Required) {
-                if (!OrderID.IsDetailKey && Empty(OrderID.FormValue)) {
-                    OrderID.AddErrorMessage(ConvertToString(OrderID.RequiredErrorMessage).Replace("%s", OrderID.Caption));
-                }
-            }
-            if (!CheckInteger(OrderID.FormValue)) {
-                OrderID.AddErrorMessage(OrderID.GetErrorMessage(false));
-            }
 
             // Return validate result
             validateForm = validateForm && !HasInvalidFields();
@@ -2773,11 +2654,6 @@ public partial class project1 {
 
             // Price
             Price.SetDbValue(rsnew, Price.CurrentValue, Price.ReadOnly);
-
-            // OrderID
-            if (!Empty(OrderID.SessionValue))
-                OrderID.ReadOnly = true;
-            OrderID.SetDbValue(rsnew, OrderID.CurrentValue, OrderID.ReadOnly);
 
             // Update current values
             SetCurrentValues(rsnew);
@@ -2864,7 +2740,6 @@ public partial class project1 {
             hash += GetFieldHash(row["ItemName"], DataType.String); // ItemName
             hash += GetFieldHash(row["Qty"], DataType.Number); // Qty
             hash += GetFieldHash(row["Price"], DataType.String); // Price
-            hash += GetFieldHash(row["OrderID"], DataType.Number); // OrderID
             return hash;
         }
 
@@ -2877,7 +2752,6 @@ public partial class project1 {
             row.Add("ItemName", dr["ItemName"]); // ItemName
             row.Add("Qty", dr["Qty"]); // Qty
             row.Add("Price", dr["Price"]); // Price
-            row.Add("OrderID", dr["OrderID"]); // OrderID
             return GetRowHash(row);
         }
 
@@ -2900,7 +2774,9 @@ public partial class project1 {
                 Price.SetDbValue(rsnew, Price.CurrentValue);
 
                 // OrderID
-                OrderID.SetDbValue(rsnew, OrderID.CurrentValue);
+                if (!Empty(OrderID.SessionValue)) {
+                    rsnew["OrderID"] = OrderID.SessionValue;
+                }
             } catch (Exception e) {
                 if (Config.Debug)
                     throw;
@@ -2966,7 +2842,6 @@ public partial class project1 {
             ItemName.AdvancedSearch.Load();
             Qty.AdvancedSearch.Load();
             Price.AdvancedSearch.Load();
-            OrderID.AdvancedSearch.Load();
         }
 
         // Set up search options

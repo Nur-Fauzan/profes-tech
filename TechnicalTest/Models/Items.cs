@@ -187,7 +187,6 @@ public partial class project1 {
             OrderID = new (this, "x_OrderID", 3, SqlDbType.Int) {
                 Name = "OrderID",
                 Expression = "[OrderID]",
-                UseBasicSearch = true,
                 BasicSearchExpression = "CAST([OrderID] AS NVARCHAR)",
                 DateTimeFormat = -1,
                 VirtualExpression = "[OrderID]",
@@ -199,13 +198,13 @@ public partial class project1 {
                 HtmlTag = "TEXT",
                 InputTextType = "text",
                 IsForeignKey = true, // Foreign key field
-                UseFilter = true, // Table header filter
+                Sortable = false, // Allow sort
                 DefaultErrorMessage = Language.Phrase("IncorrectInteger"),
                 SearchOperators = new () { "=", "<>", "IN", "NOT IN", "<", "<=", ">", ">=", "BETWEEN", "NOT BETWEEN", "IS NULL", "IS NOT NULL" },
                 CustomMessage = Language.FieldPhrase("Items", "OrderID", "CustomMsg"),
                 IsUpload = false
             };
-            OrderID.Lookup = new Lookup<DbField>(OrderID, "Items", true, "OrderID", new List<string> {"OrderID", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "");
+            OrderID.Lookup = new Lookup<DbField>(OrderID, "Orders", false, "ID", new List<string> {"SalesOrder", "", "", ""}, "", "", new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, new List<string> {}, "", "", "[SalesOrder]");
             Fields.Add("OrderID", OrderID);
 
             // Call Table Load event
@@ -1250,7 +1249,24 @@ public partial class project1 {
 
             // OrderID
             OrderID.ViewValue = OrderID.CurrentValue;
-            OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
+            curVal = ConvertToString(OrderID.CurrentValue);
+            if (!Empty(curVal)) {
+                if (OrderID.Lookup != null && IsDictionary(OrderID.Lookup?.Options) && OrderID.Lookup?.Options.Values.Count > 0) { // Load from cache // DN
+                    OrderID.ViewValue = OrderID.LookupCacheOption(curVal);
+                } else { // Lookup from database // DN
+                    filterWrk = SearchFilter("[ID]", "=", OrderID.CurrentValue, DataType.Number, "");
+                    sqlWrk = OrderID.Lookup?.GetSql(false, filterWrk, null, this, true, true);
+                    rswrk = sqlWrk != null ? Connection.GetRows(sqlWrk) : null; // Must use Sync to avoid overwriting ViewValue in RenderViewRow
+                    if (rswrk?.Count > 0 && OrderID.Lookup != null) { // Lookup values found
+                        var listwrk = OrderID.Lookup?.RenderViewRow(rswrk[0]);
+                        OrderID.ViewValue = OrderID.HighlightLookup(ConvertToString(rswrk[0]), OrderID.DisplayValue(listwrk));
+                    } else {
+                        OrderID.ViewValue = FormatNumber(OrderID.CurrentValue, OrderID.FormatPattern);
+                    }
+                }
+            } else {
+                OrderID.ViewValue = DbNullValue;
+            }
             OrderID.ViewCustomAttributes = "";
 
             // ID
@@ -1320,7 +1336,24 @@ public partial class project1 {
             if (!Empty(OrderID.SessionValue)) {
                 OrderID.CurrentValue = ForeignKeyValue(OrderID.SessionValue);
                 OrderID.ViewValue = OrderID.CurrentValue;
-                OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
+                curVal = ConvertToString(OrderID.CurrentValue);
+                if (!Empty(curVal)) {
+                    if (OrderID.Lookup != null && IsDictionary(OrderID.Lookup?.Options) && OrderID.Lookup?.Options.Values.Count > 0) { // Load from cache // DN
+                        OrderID.ViewValue = OrderID.LookupCacheOption(curVal);
+                    } else { // Lookup from database // DN
+                        filterWrk = SearchFilter("[ID]", "=", OrderID.CurrentValue, DataType.Number, "");
+                        sqlWrk = OrderID.Lookup?.GetSql(false, filterWrk, null, this, true, true);
+                        rswrk = sqlWrk != null ? Connection.GetRows(sqlWrk) : null; // Must use Sync to avoid overwriting ViewValue in RenderViewRow
+                        if (rswrk?.Count > 0 && OrderID.Lookup != null) { // Lookup values found
+                            var listwrk = OrderID.Lookup?.RenderViewRow(rswrk[0]);
+                            OrderID.ViewValue = OrderID.HighlightLookup(ConvertToString(rswrk[0]), OrderID.DisplayValue(listwrk));
+                        } else {
+                            OrderID.ViewValue = FormatNumber(OrderID.CurrentValue, OrderID.FormatPattern);
+                        }
+                    }
+                } else {
+                    OrderID.ViewValue = DbNullValue;
+                }
                 OrderID.ViewCustomAttributes = "";
             } else {
                 OrderID.EditValue = OrderID.CurrentValue; // DN
@@ -1364,12 +1397,10 @@ public partial class project1 {
                         doc.ExportCaption(ItemName);
                         doc.ExportCaption(Qty);
                         doc.ExportCaption(Price);
-                        doc.ExportCaption(OrderID);
                     } else {
                         doc.ExportCaption(ItemName);
                         doc.ExportCaption(Qty);
                         doc.ExportCaption(Price);
-                        doc.ExportCaption(OrderID);
                     }
                     doc.EndExportRow();
                 }
@@ -1410,12 +1441,10 @@ public partial class project1 {
                             await doc.ExportField(ItemName);
                             await doc.ExportField(Qty);
                             await doc.ExportField(Price);
-                            await doc.ExportField(OrderID);
                         } else {
                             await doc.ExportField(ItemName);
                             await doc.ExportField(Qty);
                             await doc.ExportField(Price);
-                            await doc.ExportField(OrderID);
                         }
                         doc.EndExportRow(rowcnt);
                     }

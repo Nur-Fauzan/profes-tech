@@ -28,18 +28,6 @@ public partial class HomeController : Controller
         return await ordersAdd.Run();
     }
 
-    // view
-    [Route("OrdersView/{ID?}", Name = "OrdersView-Orders-view")]
-    [Route("Home/OrdersView/{ID?}", Name = "OrdersView-Orders-view-2")]
-    public async Task<IActionResult> OrdersView()
-    {
-        // Create page object
-        ordersView = new GLOBALS.OrdersView(this);
-
-        // Run the page
-        return await ordersView.Run();
-    }
-
     // edit
     [Route("OrdersEdit/{ID?}", Name = "OrdersEdit-Orders-edit")]
     [Route("Home/OrdersEdit/{ID?}", Name = "OrdersEdit-Orders-edit-2")]

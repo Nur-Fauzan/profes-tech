@@ -43,15 +43,14 @@ loadjs.ready(["wrapper", "head"], function () {
 
             ["ItemName", [fields.ItemName.visible && fields.ItemName.required ? ew.Validators.required(fields.ItemName.caption) : null], fields.ItemName.isInvalid],
             ["Qty", [fields.Qty.visible && fields.Qty.required ? ew.Validators.required(fields.Qty.caption) : null, ew.Validators.integer], fields.Qty.isInvalid],
-            ["Price", [fields.Price.visible && fields.Price.required ? ew.Validators.required(fields.Price.caption) : null], fields.Price.isInvalid],
-            ["OrderID", [fields.OrderID.visible && fields.OrderID.required ? ew.Validators.required(fields.OrderID.caption) : null, ew.Validators.integer], fields.OrderID.isInvalid]
+            ["Price", [fields.Price.visible && fields.Price.required ? ew.Validators.required(fields.Price.caption) : null], fields.Price.isInvalid]
         ])
 
         // Check empty row
         .setEmptyRow(
             function (rowIndex) {
                 let fobj = this.getForm(),
-                    fields = [["ItemName",false],["Qty",false],["Price",false],["OrderID",false]];
+                    fields = [["ItemName",false],["Qty",false],["Price",false]];
                 if (fields.some(field => ew.valueChanged(fobj, rowIndex, ...field)))
                     return false;
                 return true;
@@ -105,9 +104,6 @@ loadjs.ready(["wrapper", "head"], function () {
 @if (itemsGrid.Price.Visible) { // itemsGrid.Price.Visible (begin)
         <th data-name="Price" class="@(itemsGrid.Price.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_Price" class="Items_Price">@Html.Raw(itemsGrid.RenderFieldHeader(itemsGrid.Price))</div></th>
 } @* itemsGrid.Price.Visible (end) *@
-@if (itemsGrid.OrderID.Visible) { // itemsGrid.OrderID.Visible (begin)
-        <th data-name="OrderID" class="@(itemsGrid.OrderID.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_OrderID" class="Items_OrderID">@Html.Raw(itemsGrid.RenderFieldHeader(itemsGrid.OrderID))</div></th>
-} @* itemsGrid.OrderID.Visible (end) *@
 @* Render list options (header, right) *@
 @itemsGrid.ListOptions.RenderHeader("right")
     </tr>
@@ -233,51 +229,6 @@ loadjs.ready(["wrapper", "head"], function () {
 } @* View (end) *@
 </td>
     } @* itemsGrid.Price.Visible (end) *@
-    @if (itemsGrid.OrderID.Visible) { // itemsGrid.OrderID.Visible (begin)
-        <td data-name="OrderID" @Html.Raw(itemsGrid.OrderID.CellAttributes)>
-@if (itemsGrid.RowType == RowType.Add) { // Add (begin)
-    @* OrderID (begin) *@
-    @if (!Empty(itemsGrid.OrderID.SessionValue)) {
-    <span @Html.Raw(itemsGrid.OrderID.ViewAttributes)>
-    <input type="text" readonly class="form-control-plaintext" value="@Html.Raw(RemoveHtml(ConvertToString(itemsGrid.OrderID.ViewValue)))"></span>
-    <input type="hidden" id="x@(itemsGrid.RowIndex)_OrderID" name="x@(itemsGrid.RowIndex)_OrderID" value="@(HtmlEncode(itemsGrid.OrderID.CurrentValue))" data-hidden="1">
-    } else {
-    <span id="el@(itemsGrid.RowIndex == "$rowindex$" ? "$rowindex$" : itemsGrid.RowCount)_Items_OrderID" class="el_Items_OrderID">
-    <input type="@(itemsGrid.OrderID.InputTextType)" name="x@(itemsGrid.RowIndex)_OrderID" id="x@(itemsGrid.RowIndex)_OrderID" data-table="Items" data-field="x_OrderID" value="@Html.Raw(itemsGrid.OrderID.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsGrid.OrderID.PlaceHolder))" data-format-pattern="@(itemsGrid.OrderID.FormatPattern)"@Html.Raw(itemsGrid.OrderID.EditAttributes)>
-    <div class="invalid-feedback">@Html.Raw(itemsGrid.OrderID.GetErrorMessage())</div>
-    </span>
-    }
-    <input type="hidden" data-table="Items" data-field="x_OrderID" data-hidden="1" data-old name="o@(itemsGrid.RowIndex)_OrderID" id="o@(itemsGrid.RowIndex)_OrderID" value="@Html.Raw(HtmlEncode(itemsGrid.OrderID.OldValue))">
-    @* OrderID (end) *@
-} @* Add (end) *@
-@if (itemsGrid.RowType == RowType.Edit) { // Edit (begin)
-    @* OrderID (begin) *@
-    @if (!Empty(itemsGrid.OrderID.SessionValue)) {
-    <span @Html.Raw(itemsGrid.OrderID.ViewAttributes)>
-    <input type="text" readonly class="form-control-plaintext" value="@Html.Raw(RemoveHtml(ConvertToString(itemsGrid.OrderID.ViewValue)))"></span>
-    <input type="hidden" id="x@(itemsGrid.RowIndex)_OrderID" name="x@(itemsGrid.RowIndex)_OrderID" value="@(HtmlEncode(itemsGrid.OrderID.CurrentValue))" data-hidden="1">
-    } else {
-    <span id="el@(itemsGrid.RowIndex == "$rowindex$" ? "$rowindex$" : itemsGrid.RowCount)_Items_OrderID" class="el_Items_OrderID">
-    <input type="@(itemsGrid.OrderID.InputTextType)" name="x@(itemsGrid.RowIndex)_OrderID" id="x@(itemsGrid.RowIndex)_OrderID" data-table="Items" data-field="x_OrderID" value="@Html.Raw(itemsGrid.OrderID.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsGrid.OrderID.PlaceHolder))" data-format-pattern="@(itemsGrid.OrderID.FormatPattern)"@Html.Raw(itemsGrid.OrderID.EditAttributes)>
-    <div class="invalid-feedback">@Html.Raw(itemsGrid.OrderID.GetErrorMessage())</div>
-    </span>
-    }
-    @* OrderID (end) *@
-} @* Edit (end) *@
-@if (itemsGrid.RowType == RowType.View) { // View (begin)
-    @* OrderID (begin) *@
-    <span id="el@(itemsGrid.RowIndex == "$rowindex$" ? "$rowindex$" : itemsGrid.RowCount)_Items_OrderID" class="el_Items_OrderID">
-    <span @Html.Raw(itemsGrid.OrderID.ViewAttributes)>
-    @Html.Raw(itemsGrid.OrderID.GetViewValue())</span>
-    </span>
-    if (itemsGrid.IsConfirm) {
-    <input type="hidden" data-table="Items" data-field="x_OrderID" data-hidden="1" name="fItemsgrid$x@(itemsGrid.RowIndex)_OrderID" id="fItemsgrid$x@(itemsGrid.RowIndex)_OrderID" value="@Html.Raw(HtmlEncode(itemsGrid.OrderID.FormValue))">
-    <input type="hidden" data-table="Items" data-field="x_OrderID" data-hidden="1" data-old name="fItemsgrid$o@(itemsGrid.RowIndex)_OrderID" id="fItemsgrid$o@(itemsGrid.RowIndex)_OrderID" value="@Html.Raw(HtmlEncode(itemsGrid.OrderID.OldValue))">
-    }
-    @* OrderID (end) *@
-} @* View (end) *@
-</td>
-    } @* itemsGrid.OrderID.Visible (end) *@
     @* Render list options (body, right) *@
     @itemsGrid.ListOptions.RenderBody("right", itemsGrid.RowCount)
     </tr>

@@ -73,9 +73,6 @@ loadjs.ready("head", function() {
 @if (itemsDelete.Price.Visible) { // itemsDelete.Price.Visible (begin)
         <th class="@Html.Raw(itemsDelete.Price.HeaderCellClass)"><span id="elh_Items_Price" class="Items_Price">@Html.Raw(itemsDelete.Price.Caption)</span></th>
 } @* itemsDelete.Price.Visible (end) *@
-@if (itemsDelete.OrderID.Visible) { // itemsDelete.OrderID.Visible (begin)
-        <th class="@Html.Raw(itemsDelete.OrderID.HeaderCellClass)"><span id="elh_Items_OrderID" class="Items_OrderID">@Html.Raw(itemsDelete.OrderID.Caption)</span></th>
-} @* itemsDelete.OrderID.Visible (end) *@
     </tr>
     </thead>
     <tbody>
@@ -115,13 +112,6 @@ loadjs.ready("head", function() {
 @Html.Raw(itemsDelete.Price.GetViewValue())</span>
 </span></td>
 } @* itemsDelete.Price.Visible (end) *@
-@if (itemsDelete.OrderID.Visible) { // itemsDelete.OrderID.Visible (begin)
-        <td @Html.Raw(itemsDelete.OrderID.CellAttributes)>
-<span id="">
-<span @Html.Raw(itemsDelete.OrderID.ViewAttributes)>
-@Html.Raw(itemsDelete.OrderID.GetViewValue())</span>
-</span></td>
-} @* itemsDelete.OrderID.Visible (end) *@
     </tr>
 }
 @{ itemsDelete.CloseRecordset(); }

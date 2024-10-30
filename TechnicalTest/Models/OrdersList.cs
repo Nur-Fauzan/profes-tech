@@ -1482,20 +1482,8 @@ public partial class project1 {
             item.OnLeft = false;
             item.Visible = false;
 
-            // "view"
-            item = ListOptions.Add("view");
-            item.CssClass = "text-nowrap";
-            item.Visible = true;
-            item.OnLeft = false;
-
             // "edit"
             item = ListOptions.Add("edit");
-            item.CssClass = "text-nowrap";
-            item.Visible = true;
-            item.OnLeft = false;
-
-            // "copy"
-            item = ListOptions.Add("copy");
             item.CssClass = "text-nowrap";
             item.Visible = true;
             item.OnLeft = false;
@@ -1598,19 +1586,6 @@ public partial class project1 {
             listOption = ListOptions["sequence"];
             listOption?.SetBody(FormatSequenceNumber(RecordCount));
 
-            // "view"
-            listOption = ListOptions["view"];
-            string viewcaption = Language.Phrase("ViewLink", true);
-            isVisible = true;
-            if (isVisible) {
-                if (ModalView && !IsMobile())
-                    listOption?.SetBody($@"<a class=""ew-row-link ew-view"" title=""{viewcaption}"" data-table=""Orders"" data-caption=""{viewcaption}"" data-ew-action=""modal"" data-action=""view"" data-ajax=""" + (UseAjaxActions ? "true" : "false") + "\" data-url=\"" + HtmlEncode(AppPath(ViewUrl)) + "\" data-btn=\"null\">" + Language.Phrase("ViewLink") + "</a>");
-                else
-                    listOption?.SetBody($@"<a class=""ew-row-link ew-view"" title=""{viewcaption}"" data-caption=""{viewcaption}"" href=""" + HtmlEncode(AppPath(ViewUrl)) + "\">" + Language.Phrase("ViewLink") + "</a>");
-            } else {
-                listOption?.Clear();
-            }
-
             // "edit"
             listOption = ListOptions["edit"];
             string editcaption = Language.Phrase("EditLink", true);
@@ -1620,19 +1595,6 @@ public partial class project1 {
                     listOption?.SetBody($@"<a class=""ew-row-link ew-edit"" title=""{editcaption}"" data-table=""Orders"" data-caption=""{editcaption}"" data-ew-action=""modal"" data-action=""edit"" data-ajax=""" + (UseAjaxActions ? "true" : "false") + "\" data-url=\"" + HtmlEncode(AppPath(EditUrl)) + "\" data-btn=\"SaveBtn\">" + Language.Phrase("EditLink") + "</a>");
                 else
                     listOption?.SetBody($@"<a class=""ew-row-link ew-edit"" title=""{editcaption}"" data-caption=""{editcaption}"" href=""" + HtmlEncode(AppPath(EditUrl)) + "\">" + Language.Phrase("EditLink") + "</a>");
-            } else {
-                listOption?.Clear();
-            }
-
-            // "copy"
-            listOption = ListOptions["copy"];
-            string copycaption = Language.Phrase("CopyLink", true);
-            isVisible = true;
-            if (isVisible) {
-                if (ModalAdd && !IsMobile())
-                    listOption?.SetBody($@"<a class=""ew-row-link ew-copy"" title=""{copycaption}"" data-table=""Orders"" data-caption=""{copycaption}"" data-ew-action=""modal"" data-action=""add"" data-ajax=""" + (UseAjaxActions ? "true" : "false") + "\" data-url=\"" + HtmlEncode(AppPath(CopyUrl)) + "\" data-btn=\"AddBtn\">" + Language.Phrase("CopyLink") + "</a>");
-                else
-                    listOption?.SetBody($@"<a class=""ew-row-link ew-copy"" title=""{copycaption}"" data-caption=""{copycaption}"" href=""" + HtmlEncode(AppPath(CopyUrl)) + "\">" + Language.Phrase("CopyLink") + "</a>");
             } else {
                 listOption?.Clear();
             }
@@ -1695,15 +1657,6 @@ public partial class project1 {
                 body = "<a class=\"btn btn-default ew-row-link ew-detail" + (ListOptions.UseDropDownButton ? " dropdown-toggle" : "") + "\" data-action=\"list\" href=\"" + HtmlEncode(AppPath("ItemsList?" + Config.TableShowMaster + "=Orders&" + ForeignKeyUrl("fk_ID", ID.CurrentValue) + "")) + "\">" + body + "</a>";
                 string links = "";
                 detailPage = Resolve("ItemsGrid")!;
-                if (detailPage?.DetailView ?? false) {
-                    caption = Language.Phrase("MasterDetailViewLink", null);
-                    title = Language.Phrase("MasterDetailViewLink", true);
-                    url = GetViewUrl(Config.TableShowDetail + "=Items");
-                    links += "<li><a class=\"dropdown-item ew-row-link ew-detail-view\" data-action=\"view\" data-caption=\"" + title + "\" href=\"" + HtmlEncode(AppPath(url)) + "\">" + caption + "</a></li>";
-                    if (!Empty(detailViewTblVar))
-                        detailViewTblVar += ",";
-                    detailViewTblVar += "Items";
-                }
                 if (detailPage?.DetailEdit ?? false) {
                     caption = Language.Phrase("MasterDetailEditLink", null);
                     title = Language.Phrase("MasterDetailEditLink", true);
@@ -1712,15 +1665,6 @@ public partial class project1 {
                     if (!Empty(detailEditTblVar))
                         detailEditTblVar += ",";
                     detailEditTblVar += "Items";
-                }
-                if (detailPage?.DetailAdd ?? false) {
-                    caption = Language.Phrase("MasterDetailCopyLink", null);
-                    title = Language.Phrase("MasterDetailCopyLink", true);
-                    url = GetCopyUrl(Config.TableShowDetail + "=Items");
-                    links += "<li><a class=\"dropdown-item ew-row-link ew-detail-copy\" data-action=\"add\" data-caption=\"" + title + "\" href=\"" + HtmlEncode(AppPath(url)) + "\">" + caption + "</a></li>";
-                    if (!Empty(detailCopyTblVar))
-                        detailCopyTblVar += ",";
-                    detailCopyTblVar += "Items";
                 }
                 if (!Empty(links)) {
                     body += "<button type=\"button\" class=\"dropdown-toggle btn btn-default ew-detail\" data-bs-toggle=\"dropdown\"></button>";

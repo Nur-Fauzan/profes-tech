@@ -78,7 +78,7 @@ public partial class project1 {
 
         public const string ProjectId = "{5973C4A2-FDFB-4411-833B-E22476E41E7A}"; // Project ID (GUID)
 
-        public static string RandomKey = "aDgKQfHwm65QaEMR"; // Random key for encryption
+        public static string RandomKey = "lIXOtaedqIW7Q3ei"; // Random key for encryption
 
         public static string EncryptionKey = ""; // Encryption key for data protection
 
@@ -118,13 +118,13 @@ public partial class project1 {
 
         public static string FileNotFound = "/9j/4AAQSkZJRgABAQAAAQABAAD/7QAuUGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAABIcAigADEZpbGVOb3RGb3VuZAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wgARCAABAAEDAREAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACP/EABQBAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhADEAAAAD+f/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPwB//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPwB//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwB//9k="; // 1x1 jpeg with IPTC data "2#040"="FileNotFound"
 
-        public static string BodyClass = "hold-transition layout-fixed"; // CSS class(es) for <body> tag
+        public static string BodyClass = "hold-transition sidebar-collapse ew-layout-top-nav"; // CSS class(es) for <body> tag
 
         public static string BodyStyle = ""; // CSS style for <body> tag
 
-        public static string SidebarClass = "main-sidebar sidebar-dark-red"; // CSS class(es) for sidebar
+        public static string SidebarClass = "main-sidebar sidebar-dark-blue"; // CSS class(es) for sidebar
 
-        public static string NavbarClass = "main-header navbar navbar-expand navbar-red navbar-dark border-bottom-0"; // CSS class(es) for navbar
+        public static string NavbarClass = "main-header navbar navbar-expand navbar-blue navbar-dark border-bottom-0"; // CSS class(es) for navbar
 
         public static string ClassPrefix = "_"; // Prefix for invalid CSS class names
 
@@ -938,8 +938,6 @@ public partial class project1 {
         // Menu items // DN
         public static List<object[]> MenuItems = new ()
         {
-            new object[] { 1, "mi_Items", "1", "ItemsList?cmd=resetall", -1, "", true, false, false, "", "", false, true },
-            new object[] { 2, "mi_Orders", "2", "OrdersList", -1, "", true, false, false, "", "", false, true }
         };
 
         // Boolean HTML attributes

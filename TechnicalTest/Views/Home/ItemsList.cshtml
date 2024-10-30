@@ -46,8 +46,7 @@ loadjs.ready(["wrapper", "head"], function () {
 
             ["ItemName", [fields.ItemName.visible && fields.ItemName.required ? ew.Validators.required(fields.ItemName.caption) : null], fields.ItemName.isInvalid],
             ["Qty", [fields.Qty.visible && fields.Qty.required ? ew.Validators.required(fields.Qty.caption) : null, ew.Validators.integer], fields.Qty.isInvalid],
-            ["Price", [fields.Price.visible && fields.Price.required ? ew.Validators.required(fields.Price.caption) : null], fields.Price.isInvalid],
-            ["OrderID", [fields.OrderID.visible && fields.OrderID.required ? ew.Validators.required(fields.OrderID.caption) : null, ew.Validators.integer], fields.OrderID.isInvalid]
+            ["Price", [fields.Price.visible && fields.Price.required ? ew.Validators.required(fields.Price.caption) : null], fields.Price.isInvalid]
         ])
 
         // Form_CustomValidate
@@ -66,7 +65,6 @@ loadjs.ready(["wrapper", "head"], function () {
             "ItemName": @Html.Raw(itemsList.ItemName.ToClientList(itemsList)),
             "Qty": @Html.Raw(itemsList.Qty.ToClientList(itemsList)),
             "Price": @Html.Raw(itemsList.Price.ToClientList(itemsList)),
-            "OrderID": @Html.Raw(itemsList.OrderID.ToClientList(itemsList)),
         })
         .build();
     window[form.id] = form;
@@ -131,8 +129,7 @@ loadjs.ready(["wrapper", "head"], function () {
 
             ["ItemName", [], fields.ItemName.isInvalid],
             ["Qty", [], fields.Qty.isInvalid],
-            ["Price", [], fields.Price.isInvalid],
-            ["OrderID", [], fields.OrderID.isInvalid]
+            ["Price", [], fields.Price.isInvalid]
         ])
         // Validate form
         .setValidate(
@@ -170,7 +167,6 @@ loadjs.ready(["wrapper", "head"], function () {
             "ItemName": @Html.Raw(itemsList.ItemName.ToClientList(itemsList)),
             "Qty": @Html.Raw(itemsList.Qty.ToClientList(itemsList)),
             "Price": @Html.Raw(itemsList.Price.ToClientList(itemsList)),
-            "OrderID": @Html.Raw(itemsList.OrderID.ToClientList(itemsList)),
         })
 
         // Filters
@@ -299,42 +295,6 @@ loadjs.ready(["wrapper", "head"], function () {
         </script>
     </div><!-- /.col-sm-auto -->
 } @* itemsList.Price.Visible (end) *@
-@if (itemsList.OrderID.Visible) { // itemsList.OrderID.Visible (begin)
-    if (!itemsList.OrderID.UseFilter) {
-        itemsList.SearchColumnCount++;
-    }
-    <div id="xs_OrderID" class="col-sm-auto d-sm-flex align-items-start mb-3 px-0 pe-sm-2@(itemsList.OrderID.UseFilter ? " ew-filter-field" : "")">
-        <select
-            id="x_OrderID"
-            name="x_OrderID[]"
-            class="form-control ew-select@(itemsList.OrderID.IsInvalidClass)"
-            data-select2-id="fItemssrch_x_OrderID"
-            data-table="Items"
-            data-field="x_OrderID"
-            data-caption="@Html.Raw(HtmlEncode(RemoveHtml(itemsList.OrderID.Caption)))"
-            data-filter="true"
-            multiple
-            size="1"
-            data-value-separator="@(itemsList.OrderID.DisplayValueSeparatorAttribute)"
-            data-placeholder="@(HtmlEncode(itemsList.OrderID.PlaceHolder))"
-            data-ew-action="update-options"
-            @Html.Raw(itemsList.OrderID.EditAttributes)>
-            @(itemsList.OrderID.SelectOptionListHtml("x_OrderID", true))
-        </select>
-        <div class="invalid-feedback">@Html.Raw(itemsList.OrderID.GetErrorMessage(false))</div>
-        <script>
-        loadjs.ready("fItemssrch", function() {
-            var options = {
-                name: "x_OrderID",
-                selectId: "fItemssrch_x_OrderID",
-                ajax: { id: "x_OrderID", form: "fItemssrch", limit: ew.FILTER_PAGE_SIZE, data: { ajax: "filter" } }
-            };
-            options = Object.assign({}, ew.filterOptions, options, ew.vars.tables.Items.fields.OrderID.filterOptions);
-            ew.createFilter(options);
-        });
-        </script>
-    </div><!-- /.col-sm-auto -->
-} @* itemsList.OrderID.Visible (end) *@
 </div><!-- /.row -->
 <div class="row mb-0">
     <div class="col-sm-auto px-0 pe-sm-2">
@@ -402,9 +362,6 @@ loadjs.ready(["wrapper", "head"], function () {
 @if (itemsList.Price.Visible) { // itemsList.Price.Visible (begin)
         <th data-name="Price" class="@(itemsList.Price.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_Price" class="Items_Price">@Html.Raw(itemsList.RenderFieldHeader(itemsList.Price))</div></th>
 } @* itemsList.Price.Visible (end) *@
-@if (itemsList.OrderID.Visible) { // itemsList.OrderID.Visible (begin)
-        <th data-name="OrderID" class="@(itemsList.OrderID.HeaderCellClass)" style="white-space: nowrap;"><div id="elh_Items_OrderID" class="Items_OrderID">@Html.Raw(itemsList.RenderFieldHeader(itemsList.OrderID))</div></th>
-} @* itemsList.OrderID.Visible (end) *@
 @* Render list options (header, right) *@
 @itemsList.ListOptions.RenderHeader("right")
     </tr>
@@ -512,47 +469,6 @@ loadjs.ready(["wrapper", "head"], function () {
 } @* View (end) *@
 </td>
     } @* itemsList.Price.Visible (end) *@
-    @if (itemsList.OrderID.Visible) { // itemsList.OrderID.Visible (begin)
-        <td data-name="OrderID" @Html.Raw(itemsList.OrderID.CellAttributes)>
-@if (itemsList.RowType == RowType.Add) { // Add (begin)
-    @* OrderID (begin) *@
-    @if (!Empty(itemsList.OrderID.SessionValue)) {
-    <span @Html.Raw(itemsList.OrderID.ViewAttributes)>
-    <input type="text" readonly class="form-control-plaintext" value="@Html.Raw(RemoveHtml(ConvertToString(itemsList.OrderID.ViewValue)))"></span>
-    <input type="hidden" id="x@(itemsList.RowIndex)_OrderID" name="x@(itemsList.RowIndex)_OrderID" value="@(HtmlEncode(itemsList.OrderID.CurrentValue))" data-hidden="1">
-    } else {
-    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_OrderID" class="el_Items_OrderID">
-    <input type="@(itemsList.OrderID.InputTextType)" name="x@(itemsList.RowIndex)_OrderID" id="x@(itemsList.RowIndex)_OrderID" data-table="Items" data-field="x_OrderID" value="@Html.Raw(itemsList.OrderID.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsList.OrderID.PlaceHolder))" data-format-pattern="@(itemsList.OrderID.FormatPattern)"@Html.Raw(itemsList.OrderID.EditAttributes)>
-    <div class="invalid-feedback">@Html.Raw(itemsList.OrderID.GetErrorMessage())</div>
-    </span>
-    }
-    <input type="hidden" data-table="Items" data-field="x_OrderID" data-hidden="1" data-old name="o@(itemsList.RowIndex)_OrderID" id="o@(itemsList.RowIndex)_OrderID" value="@Html.Raw(HtmlEncode(itemsList.OrderID.OldValue))">
-    @* OrderID (end) *@
-} @* Add (end) *@
-@if (itemsList.RowType == RowType.Edit) { // Edit (begin)
-    @* OrderID (begin) *@
-    @if (!Empty(itemsList.OrderID.SessionValue)) {
-    <span @Html.Raw(itemsList.OrderID.ViewAttributes)>
-    <input type="text" readonly class="form-control-plaintext" value="@Html.Raw(RemoveHtml(ConvertToString(itemsList.OrderID.ViewValue)))"></span>
-    <input type="hidden" id="x@(itemsList.RowIndex)_OrderID" name="x@(itemsList.RowIndex)_OrderID" value="@(HtmlEncode(itemsList.OrderID.CurrentValue))" data-hidden="1">
-    } else {
-    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_OrderID" class="el_Items_OrderID">
-    <input type="@(itemsList.OrderID.InputTextType)" name="x@(itemsList.RowIndex)_OrderID" id="x@(itemsList.RowIndex)_OrderID" data-table="Items" data-field="x_OrderID" value="@Html.Raw(itemsList.OrderID.EditValue)" size="30" placeholder="@Html.Raw(HtmlEncode(itemsList.OrderID.PlaceHolder))" data-format-pattern="@(itemsList.OrderID.FormatPattern)"@Html.Raw(itemsList.OrderID.EditAttributes)>
-    <div class="invalid-feedback">@Html.Raw(itemsList.OrderID.GetErrorMessage())</div>
-    </span>
-    }
-    @* OrderID (end) *@
-} @* Edit (end) *@
-@if (itemsList.RowType == RowType.View) { // View (begin)
-    @* OrderID (begin) *@
-    <span id="el@(itemsList.RowIndex == "$rowindex$" ? "$rowindex$" : itemsList.RowCount)_Items_OrderID" class="el_Items_OrderID">
-    <span @Html.Raw(itemsList.OrderID.ViewAttributes)>
-    @Html.Raw(itemsList.OrderID.GetViewValue())</span>
-    </span>
-    @* OrderID (end) *@
-} @* View (end) *@
-</td>
-    } @* itemsList.OrderID.Visible (end) *@
     @* Render list options (body, right) *@
     @itemsList.ListOptions.RenderBody("right", itemsList.RowCount)
     </tr>

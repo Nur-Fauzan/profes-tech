@@ -202,7 +202,7 @@ public partial class project1 {
             ItemName.SetVisibility();
             Qty.SetVisibility();
             Price.SetVisibility();
-            OrderID.SetVisibility();
+            OrderID.Visible = false;
         }
 
         // Constructor
@@ -416,6 +416,9 @@ public partial class project1 {
             if (UseAjaxActions)
                 InlineDelete = true;
 
+            // Set up lookup cache
+            await SetupLookupOptions(OrderID);
+
             // Set up master/detail parameters
             SetupMasterParms();
 
@@ -612,11 +615,6 @@ public partial class project1 {
                 Price.ViewValue = ConvertToString(Price.CurrentValue); // DN
                 Price.ViewCustomAttributes = "";
 
-                // OrderID
-                OrderID.ViewValue = OrderID.CurrentValue;
-                OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
-                OrderID.ViewCustomAttributes = "";
-
                 // ItemName
                 ItemName.HrefValue = "";
                 ItemName.TooltipValue = "";
@@ -628,10 +626,6 @@ public partial class project1 {
                 // Price
                 Price.HrefValue = "";
                 Price.TooltipValue = "";
-
-                // OrderID
-                OrderID.HrefValue = "";
-                OrderID.TooltipValue = "";
             }
 
             // Call Row Rendered event

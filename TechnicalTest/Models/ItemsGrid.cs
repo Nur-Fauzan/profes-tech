@@ -220,7 +220,7 @@ public partial class project1 {
             ItemName.SetVisibility();
             Qty.SetVisibility();
             Price.SetVisibility();
-            OrderID.SetVisibility();
+            OrderID.Visible = false;
         }
 
         /// <summary>
@@ -619,6 +619,9 @@ public partial class project1 {
 
             // Setup other options
             SetupOtherOptions();
+
+            // Set up lookup cache
+            await SetupLookupOptions(OrderID);
 
             // Load default values for add
             LoadDefaultValues();
@@ -1059,9 +1062,6 @@ public partial class project1 {
             if (CurrentForm.HasValue("x_Price") && CurrentForm.HasValue("o_Price") && !SameString(Price.CurrentValue, Price.DefaultValue) &&
             !(Price.IsForeignKey && CurrentMasterTable != "" && SameString(Price.CurrentValue, Price.SessionValue)))
                 return false;
-            if (CurrentForm.HasValue("x_OrderID") && CurrentForm.HasValue("o_OrderID") && !SameString(OrderID.CurrentValue, OrderID.DefaultValue) &&
-            !(OrderID.IsForeignKey && CurrentMasterTable != "" && SameString(OrderID.CurrentValue, OrderID.SessionValue)))
-                return false;
             return true;
         }
 
@@ -1140,7 +1140,6 @@ public partial class project1 {
             ItemName.ClearErrorMessage();
             Qty.ClearErrorMessage();
             Price.ClearErrorMessage();
-            OrderID.ClearErrorMessage();
         }
 
         // Set up sort parameters
@@ -1217,6 +1216,14 @@ public partial class project1 {
             item.Visible = true;
             item.OnLeft = false;
 
+            // "sequence"
+            item = ListOptions.Add("sequence");
+            item.CssClass = "text-nowrap";
+            item.Visible = true;
+            item.OnLeft = true; // Always on left
+            item.ShowInDropDown = false;
+            item.ShowInButtonGroup = false;
+
             // Drop down button for ListOptions
             ListOptions.UseDropDownButton = false;
             ListOptions.DropDownButtonPhrase = "ButtonListOptions";
@@ -1277,6 +1284,10 @@ public partial class project1 {
                     listOption?.SetBody("<a class=\"ew-grid-link ew-grid-delete\" title=\"" + Language.Phrase("DeleteLink", true) + "\" data-caption=\"" + Language.Phrase("DeleteLink", true) + "\" data-ew-action=\"delete-grid-row\" data-rowindex=\"" + RowIndex + "\">" + Language.Phrase("DeleteLink") + "</a>");
                 }
             }
+
+            // "sequence"
+            listOption = ListOptions["sequence"];
+            listOption?.SetBody(FormatSequenceNumber(RecordCount));
             if (CurrentMode == "view") {
             // "delete"
             listOption = ListOptions["delete"];
@@ -1552,17 +1563,6 @@ public partial class project1 {
             if (CurrentForm.HasValue("o_Price"))
                 Price.OldValue = CurrentForm.GetValue("o_Price");
 
-            // Check field name 'OrderID' before field var 'x_OrderID'
-            val = CurrentForm.HasValue("OrderID") ? CurrentForm.GetValue("OrderID") : CurrentForm.GetValue("x_OrderID");
-            if (!OrderID.IsDetailKey) {
-                if (IsApi() && !CurrentForm.HasValue("OrderID") && !CurrentForm.HasValue("x_OrderID")) // DN
-                    OrderID.Visible = false; // Disable update for API request
-                else
-                    OrderID.SetFormValue(val, true, validate);
-            }
-            if (CurrentForm.HasValue("o_OrderID"))
-                OrderID.OldValue = CurrentForm.GetValue("o_OrderID");
-
             // Check field name 'ID' before field var 'x_ID'
             val = CurrentForm.HasValue("ID") ? CurrentForm.GetValue("ID") : CurrentForm.GetValue("x_ID");
             if (!ID.IsDetailKey && !IsGridAdd && !IsAdd)
@@ -1578,7 +1578,6 @@ public partial class project1 {
             ItemName.CurrentValue = ItemName.FormValue;
             Qty.CurrentValue = Qty.FormValue;
             Price.CurrentValue = Price.FormValue;
-            OrderID.CurrentValue = OrderID.FormValue;
         }
 
         // Load recordset // DN
@@ -1725,11 +1724,6 @@ public partial class project1 {
                 Price.ViewValue = ConvertToString(Price.CurrentValue); // DN
                 Price.ViewCustomAttributes = "";
 
-                // OrderID
-                OrderID.ViewValue = OrderID.CurrentValue;
-                OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
-                OrderID.ViewCustomAttributes = "";
-
                 // ItemName
                 ItemName.HrefValue = "";
                 ItemName.TooltipValue = "";
@@ -1741,10 +1735,6 @@ public partial class project1 {
                 // Price
                 Price.HrefValue = "";
                 Price.TooltipValue = "";
-
-                // OrderID
-                OrderID.HrefValue = "";
-                OrderID.TooltipValue = "";
             } else if (RowType == RowType.Add) {
                 // ItemName
                 ItemName.SetupEditAttributes();
@@ -1768,22 +1758,6 @@ public partial class project1 {
                 Price.EditValue = HtmlEncode(Price.CurrentValue);
                 Price.PlaceHolder = RemoveHtml(Price.Caption);
 
-                // OrderID
-                OrderID.SetupEditAttributes();
-                if (!Empty(OrderID.SessionValue)) {
-                    OrderID.CurrentValue = ForeignKeyValue(OrderID.SessionValue);
-                    OrderID.OldValue = OrderID.CurrentValue;
-                    OrderID.ViewValue = OrderID.CurrentValue;
-                    OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
-                    OrderID.ViewCustomAttributes = "";
-                } else {
-                    OrderID.EditValue = OrderID.CurrentValue; // DN
-                    OrderID.PlaceHolder = RemoveHtml(OrderID.Caption);
-                    if (!Empty(OrderID.EditValue) && IsNumeric(OrderID.EditValue)) {
-                        OrderID.EditValue = FormatNumber(OrderID.EditValue, null);
-                    }
-                }
-
                 // Add refer script
 
                 // ItemName
@@ -1794,9 +1768,6 @@ public partial class project1 {
 
                 // Price
                 Price.HrefValue = "";
-
-                // OrderID
-                OrderID.HrefValue = "";
             } else if (RowType == RowType.Edit) {
                 // ItemName
                 ItemName.SetupEditAttributes();
@@ -1820,22 +1791,6 @@ public partial class project1 {
                 Price.EditValue = HtmlEncode(Price.CurrentValue);
                 Price.PlaceHolder = RemoveHtml(Price.Caption);
 
-                // OrderID
-                OrderID.SetupEditAttributes();
-                if (!Empty(OrderID.SessionValue)) {
-                    OrderID.CurrentValue = ForeignKeyValue(OrderID.SessionValue);
-                    OrderID.OldValue = OrderID.CurrentValue;
-                    OrderID.ViewValue = OrderID.CurrentValue;
-                    OrderID.ViewValue = FormatNumber(OrderID.ViewValue, OrderID.FormatPattern);
-                    OrderID.ViewCustomAttributes = "";
-                } else {
-                    OrderID.EditValue = OrderID.CurrentValue; // DN
-                    OrderID.PlaceHolder = RemoveHtml(OrderID.Caption);
-                    if (!Empty(OrderID.EditValue) && IsNumeric(OrderID.EditValue)) {
-                        OrderID.EditValue = FormatNumber(OrderID.EditValue, null);
-                    }
-                }
-
                 // Edit refer script
 
                 // ItemName
@@ -1846,9 +1801,6 @@ public partial class project1 {
 
                 // Price
                 Price.HrefValue = "";
-
-                // OrderID
-                OrderID.HrefValue = "";
             }
             if (RowType == RowType.Add || RowType == RowType.Edit || RowType == RowType.Search) // Add/Edit/Search row
                 SetupFieldTitles();
@@ -1883,14 +1835,6 @@ public partial class project1 {
                 if (!Price.IsDetailKey && Empty(Price.FormValue)) {
                     Price.AddErrorMessage(ConvertToString(Price.RequiredErrorMessage).Replace("%s", Price.Caption));
                 }
-            }
-            if (OrderID.Required) {
-                if (!OrderID.IsDetailKey && Empty(OrderID.FormValue)) {
-                    OrderID.AddErrorMessage(ConvertToString(OrderID.RequiredErrorMessage).Replace("%s", OrderID.Caption));
-                }
-            }
-            if (!CheckInteger(OrderID.FormValue)) {
-                OrderID.AddErrorMessage(OrderID.GetErrorMessage(false));
             }
 
             // Return validate result
@@ -2025,11 +1969,6 @@ public partial class project1 {
             // Price
             Price.SetDbValue(rsnew, Price.CurrentValue, Price.ReadOnly);
 
-            // OrderID
-            if (!Empty(OrderID.SessionValue))
-                OrderID.ReadOnly = true;
-            OrderID.SetDbValue(rsnew, OrderID.CurrentValue, OrderID.ReadOnly);
-
             // Update current values
             SetCurrentValues(rsnew);
             bool validMasterRecord;
@@ -2109,7 +2048,9 @@ public partial class project1 {
                 Price.SetDbValue(rsnew, Price.CurrentValue);
 
                 // OrderID
-                OrderID.SetDbValue(rsnew, OrderID.CurrentValue);
+                if (!Empty(OrderID.SessionValue)) {
+                    rsnew["OrderID"] = OrderID.SessionValue;
+                }
             } catch (Exception e) {
                 if (Config.Debug)
                     throw;
