@@ -72,7 +72,20 @@ loadjs.ready(["wrapper", "head"], function () {
 </script>
 <script>
 loadjs.ready("head", function() {
+    // Client script
     // Write your client script here, no need to add script tags.
+        const flexDiv = $("<div class='d-flex mb-3'></div>");
+        const printButton = $("<a></a>", { 
+            text: "Back",
+            class: "btn btn-default ew-btn me-3", 
+            id: "btn-print",
+            name: "btn-print",
+            href: "/OrdersList",
+        });
+        flexDiv.append(printButton);
+        const buttonsDiv = $("<div class='row ew-buttons'></div>");
+        buttonsDiv.append(flexDiv);
+        $("main").after(buttonsDiv);
 });
 </script>
 }
@@ -84,12 +97,6 @@ loadjs.ready("head", function() {
 @if (itemsList.ImportOptions.Visible) {
     itemsList.ImportOptions.Render("body");
 }
-@if (itemsList.SearchOptions.Visible) {
-    itemsList.SearchOptions.Render("body");
-}
-@if (itemsList.FilterOptions.Visible) {
-    itemsList.FilterOptions.Render("body");
-}
 </div>
 }
 @if (!itemsList.IsExport() || Config.ExportMasterRecord && itemsList.IsExport("print")) {
@@ -100,64 +107,6 @@ if (!Empty(itemsList.DbMasterFilter) && itemsList.CurrentMasterTable == "Orders"
 }
 }
 @if (!itemsList.IsModal) {
-<form name="fItemssrch" id="fItemssrch" class="ew-form ew-ext-search-form" action="@AppPath(CurrentPageName())" novalidate autocomplete="off">
-<div id="fItemssrch_search_panel" class="mb-2 mb-sm-0 @(itemsList.SearchPanelClass)"><!-- .ew-search-panel -->
-<script>
-var currentTable = @Html.Raw(ConvertToJson(itemsList.ToClientVar()));
-ew.deepAssign(ew.vars, { tables: { Items: currentTable } });
-var currentForm;
-var fItemssrch, currentSearchForm, currentAdvancedSearchForm;
-loadjs.ready(["wrapper", "head"], function () {
-    let $ = jQuery,
-        fields = currentTable.fields;
-
-    // Form object for search
-    let form = new ew.FormBuilder()
-        .setId("fItemssrch")
-        .setPageId("list")
-@if (itemsList.UseAjaxActions) {
-        <text>.setSubmitWithFetch(true)</text>
-}
-
-        // Dynamic selection lists
-        .setLists({
-        })
-
-        // Filters
-        .setFilterList(@Html.Raw(await itemsList.GetFilterList()))
-        .build();
-    window[form.id] = form;
-    currentSearchForm = form;
-    loadjs.done(form.id);
-});
-</script>
-<input type="hidden" name="cmd" value="search">
-@if (!itemsList.IsExport() && Empty(itemsList.CurrentAction) && itemsList.HasSearchFields()) { @* Show search form (begin) *@
-<div class="ew-extended-search container-fluid ps-2">
-<div class="row mb-0">
-    <div class="col-sm-auto px-0 pe-sm-2">
-        <div class="ew-basic-search input-group">
-            <input type="search" name="@(Config.TableBasicSearch)" id="@(Config.TableBasicSearch)" class="form-control ew-basic-search-keyword" value="@Html.Raw(HtmlEncode(itemsList.BasicSearch.SessionKeyword))" placeholder="@(HtmlEncode(Language.Phrase("Search")))" aria-label="@(HtmlEncode(Language.Phrase("Search")))">
-            <input type="hidden" name="@(Config.TableBasicSearchType)" id="@(Config.TableBasicSearchType)" class="ew-basic-search-type" value="@(HtmlEncode(itemsList.BasicSearch.SessionType))">
-            <button type="button" data-bs-toggle="dropdown" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" aria-haspopup="true" aria-expanded="false">
-                <span id="searchtype">@Html.Raw(itemsList.BasicSearch.TypeNameShort)</span>
-            </button>
-            <div class="dropdown-menu dropdown-menu-end">
-                <button type="button" class="dropdown-item@(itemsList.BasicSearch.SessionType == "" ? " active" : "")" form="fItemssrch" data-ew-action="search-type">@Html.Raw(Language.Phrase("QuickSearchAuto"))</button>
-                <button type="button" class="dropdown-item@(itemsList.BasicSearch.SessionType == "=" ? " active" : "")" form="fItemssrch" data-ew-action="search-type" data-search-type="=">@Html.Raw(Language.Phrase("QuickSearchExact"))</button>
-                <button type="button" class="dropdown-item@(itemsList.BasicSearch.SessionType == "AND" ? " active" : "")" form="fItemssrch" data-ew-action="search-type" data-search-type="AND">@Html.Raw(Language.Phrase("QuickSearchAll"))</button>
-                <button type="button" class="dropdown-item@(itemsList.BasicSearch.SessionType == "OR" ? " active" : "")" form="fItemssrch" data-ew-action="search-type" data-search-type="OR">@Html.Raw(Language.Phrase("QuickSearchAny"))</button>
-            </div>
-        </div>
-    </div>
-    <div class="col-sm-auto mb-3">
-        <button class="btn btn-primary" name="btn-submit" id="btn-submit" type="submit">@Html.Raw(Language.Phrase("SearchBtn"))</button>
-    </div>
-</div>
-</div><!-- /.ew-extended-search -->
-} @* Show search form (end) *@
-</div><!-- /.ew-search-panel -->
-</form>
 }
 @itemsList.ShowPageHeader()
 @itemsList.ShowMessages()

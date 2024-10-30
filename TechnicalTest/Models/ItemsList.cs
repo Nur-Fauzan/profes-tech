@@ -832,34 +832,8 @@ public partial class project1 {
                     value.HideAllOptions();
             }
 
-            // Get default search criteria
-            AddFilter(ref DefaultSearchWhere, BasicSearchWhere(true));
-
-            // Get basic search values
-            LoadBasicSearchValues();
-
-            // Process filter list
-            var filterResult = await ProcessFilterList();
-            if (filterResult != null) {
-                // Clean output buffer
-                if (!Config.Debug)
-                    Response?.Clear();
-                return Controller.Json(filterResult);
-            }
-
-            // Restore search parms from Session if not searching / reset / export
-            if ((IsExport() || Command != "search" && Command != "reset" && Command != "resetall") && Command != "json" && CheckSearchParms())
-                RestoreSearchParms();
-
-            // Call Recordset SearchValidated event
-            RecordsetSearchValidated();
-
             // Set up sorting order
             SetupSortOrder();
-
-            // Get basic search criteria
-            if (!HasInvalidFields())
-                srchBasic = BasicSearchWhere();
 
             // Restore display records
             if (Command != "json" && (RecordsPerPage == -1 || RecordsPerPage > 0)) {
@@ -867,34 +841,6 @@ public partial class project1 {
             } else {
                 DisplayRecords = 20; // Load default
                 RecordsPerPage = DisplayRecords; // Save default to session
-            }
-
-            // Load search default if no existing search criteria
-            if (!CheckSearchParms() && Empty(query)) {
-                // Load basic search from default
-                BasicSearch.LoadDefault();
-                if (!Empty(BasicSearch.Keyword))
-                    srchBasic = BasicSearchWhere(); // Save to session
-            }
-
-            // Build search criteria
-            if (!Empty(query)) {
-                AddFilter(ref SearchWhere, query);
-            } else {
-                AddFilter(ref SearchWhere, srchAdvanced);
-                AddFilter(ref SearchWhere, srchBasic);
-            }
-
-            // Call Recordset Searching event
-            RecordsetSearching(ref SearchWhere);
-
-            // Save search criteria
-            if (Command == "search" && !RestoreSearch) {
-                SessionSearchWhere = SearchWhere; // Save to Session (rename as SessionSearchWhere property)
-                StartRecord = 1; // Reset start record counter
-                StartRecordNumber = StartRecord;
-            } else if (Command != "json" && Empty(query)) {
-                SearchWhere = SessionSearchWhere;
             }
 
             // Build filter
@@ -1200,168 +1146,6 @@ public partial class project1 {
             Total.ClearErrorMessage();
         }
 
-        #pragma warning disable 162, 1998
-        // Get list of filters
-        public async Task<string> GetFilterList()
-        {
-            string filterList = "";
-
-            // Initialize
-            var filters = new JObject(); // DN
-            filters.Merge(JObject.Parse(ItemName.AdvancedSearch.ToJson())); // Field ItemName
-            filters.Merge(JObject.Parse(Qty.AdvancedSearch.ToJson())); // Field Qty
-            filters.Merge(JObject.Parse(Price.AdvancedSearch.ToJson())); // Field Price
-            filters.Merge(JObject.Parse(BasicSearch.ToJson()));
-
-            // Return filter list in JSON
-            if (filters.HasValues)
-                filterList = "\"data\":" + filters.ToString();
-            return (filterList != "") ? "{" + filterList + "}" : "null";
-        }
-
-        // Process filter list
-        protected async Task<object?> ProcessFilterList() {
-            if (Post("cmd") == "resetfilter") {
-                RestoreFilterList();
-            }
-            return null;
-        }
-        #pragma warning restore 162, 1998
-
-        // Restore list of filters
-        protected bool RestoreFilterList() {
-            // Return if not reset filter
-            if (Post("cmd") != "resetfilter")
-                return false;
-            var filter = JsonConvert.DeserializeObject<Dictionary<string, string>>(Post("filter"));
-            Command = "search";
-            string? sv;
-
-            // Field ItemName
-            if (filter?.TryGetValue("x_ItemName", out sv) ?? false) {
-                ItemName.AdvancedSearch.SearchValue = sv;
-                ItemName.AdvancedSearch.SearchOperator = filter["z_ItemName"];
-                ItemName.AdvancedSearch.SearchCondition = filter["v_ItemName"];
-                ItemName.AdvancedSearch.SearchValue2 = filter["y_ItemName"];
-                ItemName.AdvancedSearch.SearchOperator2 = filter["w_ItemName"];
-                ItemName.AdvancedSearch.Save();
-            }
-
-            // Field Qty
-            if (filter?.TryGetValue("x_Qty", out sv) ?? false) {
-                Qty.AdvancedSearch.SearchValue = sv;
-                Qty.AdvancedSearch.SearchOperator = filter["z_Qty"];
-                Qty.AdvancedSearch.SearchCondition = filter["v_Qty"];
-                Qty.AdvancedSearch.SearchValue2 = filter["y_Qty"];
-                Qty.AdvancedSearch.SearchOperator2 = filter["w_Qty"];
-                Qty.AdvancedSearch.Save();
-            }
-
-            // Field Price
-            if (filter?.TryGetValue("x_Price", out sv) ?? false) {
-                Price.AdvancedSearch.SearchValue = sv;
-                Price.AdvancedSearch.SearchOperator = filter["z_Price"];
-                Price.AdvancedSearch.SearchCondition = filter["v_Price"];
-                Price.AdvancedSearch.SearchValue2 = filter["y_Price"];
-                Price.AdvancedSearch.SearchOperator2 = filter["w_Price"];
-                Price.AdvancedSearch.Save();
-            }
-            if (filter?.TryGetValue(Config.TableBasicSearch, out string? keyword) ?? false)
-                BasicSearch.SessionKeyword = keyword;
-            if (filter?.TryGetValue(Config.TableBasicSearchType, out string? type) ?? false)
-                BasicSearch.SessionType = type;
-            return true;
-        }
-
-        // Show list of filters
-        public void ShowFilterList()
-        {
-            // Initialize
-            string filterList = "",
-                captionClass = IsExport("email") ? "ew-filter-caption-email" : "ew-filter-caption",
-                captionSuffix = IsExport("email") ? ": " : "";
-            if (!Empty(BasicSearch.Keyword))
-                filterList += "<div><span class=\"" + captionClass + "\">" + Language.Phrase("BasicSearchKeyword") + "</span>" + captionSuffix + BasicSearch.Keyword + "</div>";
-
-            // Show Filters
-            if (!Empty(filterList)) {
-                string message = "<div id=\"ew-filter-list\" class=\"callout callout-info d-table\"><div id=\"ew-current-filters\">" +
-                    Language.Phrase("CurrentFilters") + "</div>" + filterList + "</div>";
-                MessageShowing(ref message, "");
-                Write(message);
-            } else { // Output empty tag
-                Write("<div id=\"ew-filter-list\"></div>");
-            }
-        }
-
-        // Return basic search WHERE clause based on search keyword and type
-        public string BasicSearchWhere(bool def = false) {
-            string searchStr = "";
-
-            // Fields to search
-            List<DbField> searchFlds = new ();
-            searchFlds.Add(ItemName);
-            searchFlds.Add(Qty);
-            searchFlds.Add(Price);
-            searchFlds.Add(Total);
-            string searchKeyword = def ? BasicSearch.KeywordDefault : BasicSearch.Keyword;
-            string searchType = def ? BasicSearch.TypeDefault : BasicSearch.Type;
-
-            // Get search SQL
-            if (!Empty(searchKeyword)) {
-                List<string> list = BasicSearch.KeywordList(def);
-                searchStr = GetQuickSearchFilter(searchFlds, list, searchType, BasicSearch.BasicSearchAnyFields, DbId);
-                if (!def && (new[] {"", "reset", "resetall"}).Contains(Command))
-                    Command = "search";
-            }
-            if (!def && Command == "search") {
-                BasicSearch.SessionKeyword = searchKeyword;
-                BasicSearch.SessionType = searchType;
-
-                // Clear rules for QueryBuilder
-                SessionRules = "";
-            }
-            return searchStr;
-        }
-
-        // Check if search parm exists
-        protected bool CheckSearchParms() {
-            // Check basic search
-            if (BasicSearch.IssetSession)
-                return true;
-            return false;
-        }
-
-        // Clear all search parameters
-        protected void ResetSearchParms() {
-            SearchWhere = "";
-            SessionSearchWhere = SearchWhere;
-
-            // Clear basic search parameters
-            ResetBasicSearchParms();
-
-            // Clear queryBuilder
-            SessionRules = "";
-        }
-
-        // Load advanced search default values
-        protected bool LoadAdvancedSearchDefault() {
-        return false;
-        }
-
-        // Clear all basic search parameters
-        protected void ResetBasicSearchParms() {
-            BasicSearch.UnsetSession();
-        }
-
-        // Restore all search parameters
-        protected void RestoreSearchParms() {
-            RestoreSearch = true;
-
-            // Restore basic search values
-            BasicSearch.Load();
-        }
-
         // Set up sort parameters
         protected void SetupSortOrder() {
             // Load default Sorting Order
@@ -1395,10 +1179,6 @@ public partial class project1 {
         protected void ResetCommand() {
             // Get reset cmd
             if (Command.ToLower().StartsWith("reset")) {
-                // Reset search criteria
-                if (SameText(Command, "reset") || SameText(Command, "resetall"))
-                    ResetSearchParms();
-
                 // Reset master/detail keys
                 if (SameText(Command, "resetall")) {
                     CurrentMasterTable = ""; // Clear master table
@@ -1715,10 +1495,10 @@ public partial class project1 {
             // Filter button
             item = FilterOptions.Add("savecurrentfilter");
             item.Body = "<a class=\"ew-save-filter\" data-form=\"fItemssrch\" data-ew-action=\"none\">" + Language.Phrase("SaveCurrentFilter") + "</a>";
-            item.Visible = true;
+            item.Visible = false;
             item = FilterOptions.Add("deletefilter");
             item.Body = "<a class=\"ew-delete-filter\" data-form=\"fItemssrch\" data-ew-action=\"none\">" + Language.Phrase("DeleteFilter") + "</a>";
-            item.Visible = true;
+            item.Visible = false;
             FilterOptions.UseDropDownButton = true;
             FilterOptions.UseButtonGroup = !FilterOptions.UseDropDownButton;
             FilterOptions.DropDownButtonPhrase = "Filters";
@@ -2005,16 +1785,6 @@ public partial class project1 {
 
         // Load default values
         protected void LoadDefaultValues() {
-        }
-
-        // Load basic search values // DN
-        protected void LoadBasicSearchValues() {
-            if (Get(Config.TableBasicSearch, out StringValues keyword))
-                BasicSearch.Keyword = keyword.ToString();
-            if (!Empty(BasicSearch.Keyword) && Empty(Command))
-                Command = "search";
-            if (Get(Config.TableBasicSearchType, out StringValues type))
-                BasicSearch.Type = type.ToString();
         }
 
         #pragma warning disable 1998
@@ -2642,20 +2412,6 @@ public partial class project1 {
         protected void SetupSearchOptions() {
             ListOption item;
 
-            // Search button
-            item = SearchOptions.Add("searchtoggle");
-            var searchToggleClass = !Empty(SearchWhere) ? " active" : " active";
-            item.Body = "<a class=\"btn btn-default ew-search-toggle" + searchToggleClass + "\" role=\"button\" title=\"" + Language.Phrase("SearchPanel") + "\" data-caption=\"" + Language.Phrase("SearchPanel") + "\" data-ew-action=\"search-toggle\" data-form=\"fItemssrch\" aria-pressed=\"" + (searchToggleClass == " active" ? "true" : "false") + "\">" + Language.Phrase("SearchLink") + "</a>";
-            item.Visible = true;
-
-            // Show all button
-            item = SearchOptions.Add("showall");
-            if (UseCustomTemplate || !UseAjaxActions)
-                item.Body = "<a class=\"btn btn-default ew-show-all\" role=\"button\" title=\"" + Language.Phrase("ShowAll") + "\" data-caption=\"" + Language.Phrase("ShowAll") + "\" href=\"" + AppPath(PageUrl) + "cmd=reset\">" + Language.Phrase("ShowAllBtn") + "</a>";
-            else
-                item.Body = "<a class=\"btn btn-default ew-show-all\" role=\"button\" title=\"" + Language.Phrase("ShowAll") + "\" data-caption=\"" + Language.Phrase("ShowAll") + "\" data-ew-action=\"refresh\" data-url=\"" + AppPath(PageUrl) + "cmd=reset\">" + Language.Phrase("ShowAllBtn") + "</a>";
-            item.Visible = (SearchWhere != DefaultSearchWhere && SearchWhere != "0=101");
-
             // Button group for search
             SearchOptions.UseDropDownButton = false;
             SearchOptions.UseButtonGroup = true;
@@ -2674,14 +2430,12 @@ public partial class project1 {
         // Check if any search fields
         public bool HasSearchFields()
         {
-            return true;
+            return false;
         }
 
         // Render search options
         protected void RenderSearchOptions()
         {
-            if (!HasSearchFields() && SearchOptions["searchtoggle"] is ListOption opt)
-                opt.Visible = false;
         }
 
         // Set up master/detail based on QueryString

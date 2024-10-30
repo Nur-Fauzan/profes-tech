@@ -48,7 +48,15 @@ loadjs.ready(["wrapper", "head"], function () {
 </script>
 <script>
 loadjs.ready("head", function() {
+    // Client script
     // Write your client script here, no need to add script tags.
+    });
+    document.querySelectorAll('a[data-caption="Export to Excel"]').forEach(link => {
+        link.style.color = "#fff";
+        link.style.backgroundColor = "#0d6efd";
+        link.textContent = "Export to Excel";
+    });
+    loadjs.ready("load", function() {
 });
 </script>
 }

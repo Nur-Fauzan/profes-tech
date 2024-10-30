@@ -43,7 +43,7 @@ public partial class project1 {
 
         public bool ModalUpdate = false;
 
-        public bool InlineDelete = false;
+        public bool InlineDelete = true;
 
         public bool ModalGridAdd = false;
 
@@ -119,7 +119,6 @@ public partial class project1 {
             ItemName = new (this, "x_ItemName", 202, SqlDbType.NVarChar) {
                 Name = "ItemName",
                 Expression = "[ItemName]",
-                UseBasicSearch = true,
                 BasicSearchExpression = "[ItemName]",
                 DateTimeFormat = -1,
                 VirtualExpression = "[ItemName]",
@@ -140,7 +139,6 @@ public partial class project1 {
             Qty = new (this, "x_Qty", 3, SqlDbType.Int) {
                 Name = "Qty",
                 Expression = "[Qty]",
-                UseBasicSearch = true,
                 BasicSearchExpression = "CAST([Qty] AS NVARCHAR)",
                 DateTimeFormat = -1,
                 VirtualExpression = "[Qty]",
@@ -162,7 +160,6 @@ public partial class project1 {
             Price = new (this, "x_Price", 202, SqlDbType.NVarChar) {
                 Name = "Price",
                 Expression = "[Price]",
-                UseBasicSearch = true,
                 BasicSearchExpression = "[Price]",
                 DateTimeFormat = -1,
                 VirtualExpression = "[Price]",
@@ -207,7 +204,6 @@ public partial class project1 {
             Total = new (this, "x_Total", 3, SqlDbType.Int) {
                 Name = "Total",
                 Expression = "Price*Qty",
-                UseBasicSearch = true,
                 BasicSearchExpression = "CAST(Price*Qty AS NVARCHAR)",
                 DateTimeFormat = -1,
                 VirtualExpression = "Price*Qty",

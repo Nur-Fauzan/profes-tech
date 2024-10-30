@@ -43,7 +43,7 @@ public partial class project1 {
 
         public bool ModalUpdate = false;
 
-        public bool InlineDelete = false;
+        public bool InlineDelete = true;
 
         public bool ModalGridAdd = false;
 
